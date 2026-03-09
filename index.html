@@ -1,211 +1,338 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Esame di maturità 2026 – Le novità</title>
-  <style>
-    /* Reset e base */
-    html,body{margin:0;padding:0;font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Titillium Web", sans-serif;color:#222;background:#fff}
-    img{max-width:100%;height:auto}
-    a{color:#0066cc;text-decoration:none;font-weight:600}
-    a:hover{color:#004182}
-    .container{max-width:1100px;margin:0 auto;padding:20px}
-    .row{display:flex;flex-wrap:wrap;gap:20px}
-    .col-left{flex:0 0 260px}
-    .col-main{flex:1 1 0}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Money Pro - Clean Edition</title>
 
-    /* Header semplice */
-    header.site{background:#0066cc;color:#fff;padding:18px 0;box-shadow:0 4px 8px rgba(0,0,0,0.06)}
-    header .brand{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:16px;padding:0 20px}
-    header .brand h1{font-size:20px;margin:0;color:#fff}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-    /* Breadcrumb */
-    .breadcrumb{background:#fafafa;padding:10px;border:1px solid #eee;border-radius:6px;display:inline-flex;gap:8px;align-items:center}
-    .breadcrumb li{list-style:none}
-
-    /* Main column */
-    .main-col{background:#fff;padding:24px;border-radius:6px}
-    h1#titolo-main{font-size:28px;margin:0 0 12px 0;color:#114a83}
-    h2{font-size:20px;margin:18px 0 8px;color:#004a94}
-    p{margin:0 0 12px 0;line-height:1.5}
-    ul{margin:0 0 12px 24px}
-
-    /* Sidebar */
-    #sidebar{background:#f6fbff;border:1px solid #e6f2fb;padding:16px;border-radius:6px}
-    #sidebar img.icon-desktop{display:block;margin:0 auto 12px auto;max-width:120px;opacity:0.9}
-
-    /* Table quick fix (from your original request) */
-    table{width:100%;border-collapse:collapse;margin:12px 0}
-    th,td{border:1px solid #222;padding:8px;text-align:left}
-
-    /* Responsive */
-    @media(max-width:880px){
-      .row{flex-direction:column}
-      .col-left{flex:0 0 auto}
-    }
-
-    /* Small visual helpers to keep similar to original style */
-    .note{background:#f1f8ff;border-left:4px solid #65dde0;padding:12px;margin:12px 0;border-radius:4px}
-    .muted{color:#6b6b6b}
-    footer.site{background:#30373d;color:#fff;padding:20px;margin-top:20px}
-  </style>
+    <style>
+        :root { --bg: #F2F2F7; --card: #FFFFFF; --text: #000000; --text-sec: #8E8E93; --border: #E5E5EA; --nav: rgba(255,255,255,0.85); }
+        @media (prefers-color-scheme: dark) { :root { --bg: #000000; --card: #1C1C1E; --text: #FFFFFF; --text-sec: #EBEBF599; --border: #38383A; --nav: rgba(28,28,30,0.85); color-scheme: dark; } }
+        body { background-color: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+        .card-glass { background-color: var(--card); border: 1px solid var(--border); box-shadow: 0 4px 24px rgba(0,0,0,0.04); }
+        .bottom-nav { background: var(--nav); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); }
+        .nav-item { color: var(--text-sec); transition: all 0.2s; } .nav-item.active { color: #007AFF; transform: scale(1.05); }
+        .modal-overlay { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); opacity: 0; pointer-events: none; transition: 0.3s ease; }
+        .modal-overlay.active { opacity: 1; pointer-events: all; }
+        .bottom-sheet { transform: translateY(100%); transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1); background: var(--bg); border-radius: 24px 24px 0 0; padding-bottom: env(safe-area-inset-bottom); }
+        .bottom-sheet.active { transform: translateY(0); }
+        .page { display: none; animation: fadeIn 0.3s ease-out; } .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .input-custom { background: var(--card); border: 1px solid var(--border); color: var(--text); outline: none; transition: 0.2s; width: 100%; padding: 1rem; border-radius: 0.75rem; }
+        .chip { background: var(--card); border: 1px solid var(--border); color: var(--text-sec); padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 600; white-space: nowrap; cursor: pointer; }
+        .chip.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+        .no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
 </head>
-<body>
-  <header class="site" role="banner">
-    <div class="brand">
-      <h1>Ministero dell'Istruzione — Notizie</h1>
-    </div>
-  </header>
+<body class="h-screen flex flex-col antialiased">
 
-  <div class="container">
-    <div style="margin:12px 0;">
-      <nav aria-label="Briciole di pane">
-        <ol class="breadcrumb">
-          <li><a href="index.html">Home</a></li>
-          <li aria-current="page">Esame di maturità 2026 – Le novità</li>
-        </ol>
-      </nav>
-    </div>
-
-    <div class="row">
-      <aside class="col-left" aria-label="Navigazione sezione Secondo ciclo">
-        <div id="sidebar">
-          <img src="images/icone/02.svg" alt="Icona sezione" class="icon-desktop">
-          <nav aria-label="link utili">
-            <ul style="padding-left:12px;margin:0">              <li style="margin:8px 0"><a href="#sez-intro">Torna l'esame</a></li>              <li style="margin:8px 0"><a href="#sez-colloquio">Colloquio orale</a></li>              <li style="margin:8px 0"><a href="#sez-commissioni">Commissioni d'esame</a></li>              <li style="margin:8px 0"><a href="#sez-valutazione">Valutazione</a></li>              <li style="margin:8px 0"><a href="#sez-download">Materie scelte (2025 — integrate)</a></li>            </ul>
-          </nav>
+    <div id="modalOverlay" class="modal-overlay fixed inset-0 z-40" onclick="closeModal()"></div>
+    <div id="addModal" class="bottom-sheet fixed bottom-0 left-0 right-0 z-50 flex flex-col h-[85vh] shadow-2xl">
+        <div class="flex justify-center pt-3 pb-2"><div class="w-12 h-1.5 rounded-full" style="background: var(--border);"></div></div>
+        <div class="px-6 pb-4 flex justify-between items-center">
+            <h2 class="text-2xl font-bold">Nuovo Movimento</h2>
+            <button onclick="closeModal()" class="p-2 rounded-full card-glass"><i data-lucide="x" class="w-5 h-5"></i></button>
         </div>
-      </aside>
-
-      <main class="col-main main-col" role="main" aria-labelledby="titolo-main">
-        <h1 id="titolo-main">Esame di maturità 2026 – Le novità</h1>
-
-        <section id="sez-intro" aria-labelledby="sez-intro-title">
-          <h2 id="sez-intro-title">Torna l’esame di maturità</h2>
-          <p><strong>Il nuovo esame</strong> verifica conoscenze, abilità e competenze specifiche di ogni indirizzo di studio, ma anche il grado di maturazione personale, autonomia e responsabilità degli studenti.</p>
-          <p>Tiene conto dell’impegno dimostrato nell'ambito scolastico, della partecipazione alle attività di formazione scuola-lavoro, dello sviluppo delle competenze digitali, di quelle maturate nell'ambito dell'educazione civica e in altre attività coerenti con il percorso di studio, in una prospettiva di sviluppo integrale della persona.</p>
-          <p>La formazione scuola-lavoro assume un ruolo importante, in quanto testimonia l’impegno in esperienze coerenti col percorso di studi. Il Curriculum dello studente diventa elemento di valorizzazione nel colloquio orale.</p>
-        </section>
-
-        <section id="sez-orientativa" aria-labelledby="sez-orientativa-title">
-          <h2 id="sez-orientativa-title">Funzione orientativa</h2>
-          <p>La nuova Maturità non è solo una verifica finale delle conoscenze, delle abilità e delle competenze acquisite, ma assume anche una funzione orientativa per la prosecuzione degli studi o l’inserimento nel mondo del lavoro: accompagna lo studente nelle scelte future.</p>
-          <p>In tale chiave orientativa rientra anche la nuova denominazione dei PCTO (vedi sotto).</p>
-        </section>
-
-        <section id="sez-validita" aria-labelledby="sez-validita-title">
-          <h2 id="sez-validita-title">Validità dell’esame di maturità</h2>
-          <p>L’esame è considerato valido solo se il candidato svolge regolarmente tutte le prove previste.</p>
-        </section>
-
-        <section id="sez-colloquio" aria-labelledby="sez-colloquio-title">
-          <h2 id="sez-colloquio-title">Colloquio orale rinnovato</h2>
-          <p>Cambia il colloquio orale: dalla Maturità 2026 il colloquio si svolge su quattro discipline scelte annualmente dal Ministero.</p>
-
-          <p>Ogni anno il Ministero individua, entro il mese di gennaio:</p>
-          <ul>
-            <li>le discipline oggetto della seconda prova tra le materie caratterizzanti i percorsi di studio;</li>
-            <li>la disciplina oggetto di una eventuale terza prova scritta per specifici indirizzi di studio;</li>
-            <li>le quattro discipline oggetto del colloquio e le modalità organizzative relative allo svolgimento del colloquio stesso.</li>
-          </ul>
-
-          <p>Per gli istituti professionali continuano ad applicarsi le specifiche disposizioni vigenti. Il colloquio mira a verificare l’apprendimento in ciascuna disciplina, la capacità di utilizzare e raccordare le conoscenze acquisite e di argomentare in modo critico e personale, nonché il grado di responsabilità e maturità raggiunto.</p>
-        </section>
-
-        <section id="sez-commissioni" aria-labelledby="sez-commissioni-title">
-          <h2 id="sez-commissioni-title">Nuova composizione per le commissioni d’esame</h2>
-          <p>La riforma prevede una commissione ogni due classi, con cinque membri: un presidente esterno, due membri esterni e due interni. Introduce, inoltre, una formazione specifica per i commissari.</p>
-        </section>
-
-        <section id="sez-pcto" aria-labelledby="sez-pcto-title">
-          <h2 id="sez-pcto-title">Dai PCTO alla Formazione Scuola-Lavoro</h2>
-          <p>I percorsi per le competenze trasversali e per l’orientamento (PCTO) sono stati ridenominati “formazione scuola-lavoro”, per evidenziare la stretta relazione che deve esservi tra formazione scolastica e mondo del lavoro.</p>
-          <p>La formazione scuola-lavoro si connette alla funzione orientativa dell’esame di maturità, in quanto propone esperienze che aiutano a sviluppare competenze trasversali e a orientare le scelte post-diploma.</p>
-        </section>
-
-        <section id="sez-valutazione" aria-labelledby="sez-valutazione-title">
-          <h2 id="sez-valutazione-title">Valutazione</h2>
-          <p>Per i candidati che raggiungano almeno 90 punti complessivi tra credito scolastico e prove d’esame, la commissione può integrare il punteggio fino a un massimo di tre punti.</p>
-        </section>
-
-        <section id="sez-download" aria-labelledby="sez-download-title">
-  <h2 id="sez-download-title">Materie scelte per la seconda prova e discipline del colloquio (Maturità 2026)</h2>
-
-  <p>Per l’Esame di Stato 2026 è introdotta, in via sperimentale, una <strong>seconda prova scritta mista</strong>, articolata su due discipline caratterizzanti l’indirizzo di studio. Sono inoltre individuate quattro discipline oggetto del colloquio orale, di cui alcune affidate a commissari esterni.</p>
-
-  <h3>Per i Licei</h3>
-  <ul>
-    <li><strong>Liceo classico</strong>:<br>
-      <em>Seconda prova scritta (mista)</em>: Latino e Greco.<br>
-      <em>Colloquio orale</em>: Storia, Filosofia, Lingua e letteratura italiana, Storia dell’arte (Storia e Filosofia affidate a commissari esterni).
-    </li>
-    <li><strong>Liceo scientifico</strong> (anche Scienze applicate e indirizzo Sportivo):<br>
-      <em>Seconda prova scritta (mista)</em>: Matematica e Fisica.<br>
-      <em>Colloquio orale</em>: Scienze naturali e Informatica, entrambe affidate a commissari esterni, oltre a Italiano e Storia.
-    </li>
-    <li><strong>Liceo linguistico</strong>:<br>
-      <em>Seconda prova scritta (mista)</em>: Lingua e cultura straniera 1 e Lingua e cultura straniera 2.<br>
-      <em>Colloquio orale</em>: Lingua e cultura straniera 3, Storia, Italiano, Filosofia (Lingua 3 esterna).
-    </li>
-    <li><strong>Liceo delle Scienze umane</strong>:<br>
-      <em>Seconda prova scritta (mista)</em>: Scienze umane e Diritto ed Economia politica (opzione Economico-sociale).<br>
-      <em>Colloquio orale</em>: Pedagogia, Sociologia, Storia, Italiano (Pedagogia esterna).
-    </li>
-    <li><strong>Liceo artistico</strong>:<br>
-      <em>Seconda prova scritta (mista)</em>: Discipline progettuali di indirizzo e Storia dell’arte.<br>
-      <em>Colloquio orale</em>: Laboratorio di indirizzo, Storia dell’arte, Italiano, Discipline grafiche/pittoriche (Laboratorio esterno).
-    </li>
-    <li><strong>Liceo musicale</strong>:<br>
-      <em>Seconda prova scritta (mista)</em>: Teoria, analisi e composizione e Tecnologie musicali.<br>
-      <em>Colloquio orale</em>: Esecuzione e interpretazione, Storia della musica, Italiano, Tecnologie musicali (Esecuzione esterna).
-    </li>
-    <li><strong>Liceo coreutico</strong>:<br>
-      <em>Seconda prova scritta (mista)</em>: Tecniche della danza e Teoria della danza.<br>
-      <em>Colloquio orale</em>: Storia della danza, Laboratorio coreutico, Italiano, Anatomia applicata (Laboratorio esterno).
-    </li>
-  </ul>
-
-  <h3>Per gli Istituti tecnici e professionali</h3>
-  <ul>
-    <li><strong>Istituti tecnici – Amministrazione, Finanza e Marketing</strong>:<br>
-      <em>Seconda prova scritta (mista)</em>: Economia aziendale e Diritto.<br>
-      <em>Colloquio orale</em>: Economia aziendale, Lingua inglese, Informatica, Economia politica (Economia aziendale esterna).
-    </li>
-    <li><strong>Istituti tecnici – Turismo</strong>:<br>
-      <em>Seconda prova scritta (mista)</em>: Lingua inglese e Discipline turistiche e aziendali.<br>
-      <em>Colloquio orale</em>: Geografia turistica, Lingua straniera 2, Italiano, Diritto del turismo (Lingua straniera 2 esterna).
-    </li>
-    <li><strong>Costruzioni, Ambiente e Territorio</strong>:<br>
-      <em>Seconda prova scritta (mista)</em>: Geopedologia, Economia ed Estimo e Progettazione, Costruzioni e Impianti.<br>
-      <em>Colloquio orale</em>: Topografia, Estimo, Italiano, Sicurezza nei cantieri (Topografia esterna).
-    </li>
-    <li><strong>Informatica e Telecomunicazioni</strong>:<br>
-      <em>Seconda prova scritta (mista)</em>: Informatica e Telecomunicazioni.<br>
-      <em>Colloquio orale</em>: Sistemi e reti, Tecnologie informatiche, Italiano, Matematica (Sistemi e reti esterna).
-    </li>
-    <li><strong>Grafica e comunicazione</strong>:<br>
-      <em>Seconda prova scritta (mista)</em>: Progettazione multimediale e Tecnologie dei processi produttivi.<br>
-      <em>Colloquio orale</em>: Comunicazione visiva, Laboratori tecnici, Italiano, Storia dell’arte (Laboratori esterni).
-    </li>
-    <li><strong>Istituti professionali – Settore agrario</strong>:<br>
-      <em>Seconda prova scritta (mista)</em>: Economia agraria e Produzioni vegetali.<br>
-      <em>Colloquio orale</em>: Gestione dell’ambiente e del territorio, Scienze e tecnologie applicate, Italiano, Legislazione agraria (Gestione del territorio esterna).
-    </li>
-  </ul>
-
-  <p>È prevista inoltre una <strong>terza prova scritta</strong> in specifici indirizzi (sezioni EsaBac, opzioni internazionali e percorsi con sperimentazioni linguistiche). Le discipline affidate ai commissari esterni sono individuate annualmente con apposito decreto ministeriale.</p>
-</section>        
-       
-
-      </main>
+        <div class="flex-1 overflow-y-auto px-6 pb-20">
+            <div class="flex p-1 rounded-xl mb-6 card-glass">
+                <button id="btnOut" onclick="setTxType('expense')" class="flex-1 py-2 text-sm font-semibold rounded-lg bg-black text-white dark:bg-white dark:text-black">Spesa</button>
+                <button id="btnIn" onclick="setTxType('income')" class="flex-1 py-2 text-sm font-semibold rounded-lg text-gray-500">Entrata</button>
+            </div>
+            <form id="addForm" class="flex flex-col gap-4" onsubmit="saveTransaction(event)">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Importo (€)</label>
+                    <input type="number" id="txAmount" step="0.01" min="0.01" class="input-custom text-center text-3xl font-bold" placeholder="0.00" required>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Data</label>
+                        <input type="date" id="txDate" class="input-custom" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Categoria</label>
+                        <select id="txCategory" class="input-custom" required></select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Descrizione</label>
+                    <input type="text" id="txDesc" class="input-custom" placeholder="Es. Pieno benzina...">
+                </div>
+                <button type="submit" id="saveBtn" class="w-full py-4 rounded-xl text-white font-bold text-lg mt-4 bg-blue-500 flex justify-center items-center gap-2">
+                    <i data-lucide="save" class="w-5 h-5"></i> Salva
+                </button>
+            </form>
+        </div>
     </div>
-  </div>
 
-  <footer class="site" role="contentinfo">
-    <div class="container">
-      <div class="muted">© Ministero dell'Istruzione — 2026</div>
+    <div class="flex-1 overflow-y-auto pb-24 pt-8 px-5">
+
+        <div id="page-home" class="page active">
+            <div class="flex justify-between items-center mb-6">
+                <div><h1 class="text-3xl font-bold tracking-tight">Dashboard</h1><p class="text-sm font-medium text-gray-500 capitalize" id="monthTitle">Marzo 2026</p></div>
+                <button onclick="loadData()" class="w-10 h-10 rounded-full flex items-center justify-center card-glass"><i data-lucide="refresh-cw" class="w-5 h-5 text-gray-500"></i></button>
+            </div>
+
+            <div class="card-glass rounded-3xl p-6 mb-6">
+                <p class="text-xs uppercase tracking-wider font-bold text-center mb-2 text-gray-500">Saldo Attuale</p>
+                <h2 class="text-5xl font-extrabold text-center tracking-tighter mb-6" id="uiBalance">€ 0,00</h2>
+                <div class="flex justify-between border-t border-gray-200 dark:border-gray-800 pt-4">
+                    <div class="text-center w-1/2 border-r border-gray-200 dark:border-gray-800"><p class="text-xs font-semibold text-gray-500">Entrate</p><p class="text-lg font-bold text-green-500" id="uiIn">€ 0,00</p></div>
+                    <div class="text-center w-1/2"><p class="text-xs font-semibold text-gray-500">Uscite</p><p class="text-lg font-bold text-red-500" id="uiOut">€ 0,00</p></div>
+                </div>
+            </div>
+
+            <div class="flex gap-2 overflow-x-auto no-scrollbar mb-4 pb-2">
+                <button class="chip active" onclick="setListFilter('all', this)">Tutti</button>
+                <button class="chip" onclick="setListFilter('expense', this)">Uscite</button>
+                <button class="chip" onclick="setListFilter('income', this)">Entrate</button>
+            </div>
+
+            <div class="card-glass rounded-3xl p-5" id="txList">
+                <p class="text-center text-gray-500 py-4">Caricamento in corso...</p>
+            </div>
+        </div>
+
+        <div id="page-stats" class="page">
+            <h1 class="text-3xl font-bold mb-6">Analisi</h1>
+            <div class="card-glass rounded-3xl p-6 mb-6"><div class="relative w-full h-64"><canvas id="mainChart"></canvas></div></div>
+        </div>
     </div>
-  </footer>
+
+    <div class="bottom-nav fixed bottom-0 left-0 right-0 z-30 flex justify-around pt-3 pb-8 px-2">
+        <div class="nav-item active flex flex-col items-center gap-1 w-16 cursor-pointer" onclick="switchTab('home', this)"><i data-lucide="layout-dashboard" class="w-6 h-6"></i><span class="text-[10px] font-bold">Home</span></div>
+        <div class="relative -top-6"><button onclick="openModal()" class="w-14 h-14 rounded-full flex items-center justify-center text-white shadow-xl bg-blue-500 hover:scale-105 transition-transform"><i data-lucide="plus" class="w-7 h-7"></i></button></div>
+        <div class="nav-item flex flex-col items-center gap-1 w-16 cursor-pointer" onclick="switchTab('stats', this)"><i data-lucide="pie-chart" class="w-6 h-6"></i><span class="text-[10px] font-bold">Analisi</span></div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // 🚨 1. INSERISCI QUI LE TUE CHIAVI! 🚨
+        const SUPABASE_URL = 'https://awdziofrrzbewrnsuorc.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_dyFbd2EmfrzzCOR9nCsDXg_qkwJ1QjW';
+
+
+        // IL FIX MAGICO: Usiamo "db" invece di "supabase" per non far litigare il codice!
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let allTransactions = [];
+        let chartInstance = null;
+        let formType = 'expense';
+        let currentFilter = 'all';
+
+        // Categorie e Colori
+        const CATEGORIES = {
+            'food': { label: 'Cibo & Ristoranti', icon: 'pizza', col: '#FFCC00', bg: 'rgba(255,204,0,0.1)' },
+            'transport': { label: 'Trasporti & Auto', icon: 'car', col: '#FF3B30', bg: 'rgba(255,59,48,0.1)' },
+            'home': { label: 'Casa & Bollette', icon: 'home', col: '#5AC8FA', bg: 'rgba(90,200,250,0.1)' },
+            'shopping': { label: 'Shopping', icon: 'shopping-cart', col: '#FF9500', bg: 'rgba(255,149,0,0.1)' },
+            'salary': { label: 'Stipendio', icon: 'wallet', col: '#34C759', bg: 'rgba(52,199,89,0.1)' },
+            'other': { label: 'Altro', icon: 'credit-card', col: '#007AFF', bg: 'rgba(0,122,255,0.1)' }
+        };
+
+        // Popola la select delle categorie
+        const catSelect = document.getElementById('txCategory');
+        Object.entries(CATEGORIES).forEach(([id, data]) => {
+            const opt = document.createElement('option');
+            opt.value = id; opt.innerText = data.label;
+            catSelect.appendChild(opt);
+        });
+
+        // Imposta Mese corrente
+        const mesi = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+        document.getElementById('monthTitle').innerText = `${mesi[new Date().getMonth()]} ${new Date().getFullYear()}`;
+
+        // CORE: Caricamento Dati (ora usa db.from)
+        async function loadData() {
+            const listEl = document.getElementById('txList');
+
+            if(SUPABASE_URL === 'INSERISCI_QUI_URL') {
+                listEl.innerHTML = `<p class="text-center text-red-500 font-bold py-4">Inserisci le chiavi Supabase nel codice!</p>`;
+                return;
+            }
+
+            try {
+                const { data, error } = await db.from('transactions').select('*').order('date', { ascending: false });
+                if (error) throw error;
+
+                allTransactions = data || [];
+                updateDashboard();
+                renderList();
+            } catch (err) {
+                console.error("Errore:", err);
+                listEl.innerHTML = `<p class="text-center text-red-500 py-4">${err.message}</p>`;
+            }
+        }
+
+        // CORE: Disegna la lista
+        function renderList() {
+            const listEl = document.getElementById('txList');
+            let filtered = allTransactions.filter(t => currentFilter === 'all' || t.type === currentFilter);
+
+            if(filtered.length === 0) {
+                listEl.innerHTML = '<div class="text-center py-10 text-gray-500"><i data-lucide="inbox" class="w-10 h-10 mx-auto mb-2 opacity-50"></i><p>Nessun movimento</p></div>';
+                lucide.createIcons(); return;
+            }
+
+            let html = '';
+            filtered.forEach(t => {
+                const style = CATEGORIES[t.category_id] || CATEGORIES['other'];
+                const sign = t.type === 'expense' ? '-' : '+';
+                const colorClass = t.type === 'expense' ? 'text-current' : 'text-green-500';
+
+                // Formatta data
+                const dateObj = new Date(t.date);
+                const dateStr = dateObj.toLocaleDateString('it-IT', { day: '2-digit', month: 'short' });
+
+                html += `
+                    <div class="flex justify-between items-center py-3 border-b border-gray-100 dark:border-gray-800">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style="background: ${style.bg}; color: ${style.col};">
+                                <i data-lucide="${style.icon}" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <p class="font-bold text-base leading-tight">${t.description || style.label}</p>
+                                <p class="text-xs text-gray-500 mt-0.5">${dateStr} • ${style.label}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <p class="font-bold ${colorClass}">${sign}${parseFloat(t.amount).toFixed(2)} €</p>
+                            <button onclick="deleteTx('${t.id}')" class="text-red-500 opacity-50 hover:opacity-100"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            listEl.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        // CORE: Aggiorna contatori
+        function updateDashboard() {
+            let tIn = 0, tOut = 0;
+            const currentMonth = new Date().getMonth();
+
+            allTransactions.forEach(t => {
+                const d = new Date(t.date);
+                if(d.getMonth() === currentMonth) {
+                    if(t.type === 'expense') tOut += parseFloat(t.amount || 0);
+                    else tIn += parseFloat(t.amount || 0);
+                }
+            });
+
+            document.getElementById('uiBalance').innerText = `€ ${(tIn - tOut).toFixed(2)}`;
+            document.getElementById('uiIn').innerText = `€ ${tIn.toFixed(2)}`;
+            document.getElementById('uiOut').innerText = `€ ${tOut.toFixed(2)}`;
+        }
+
+        // CORE: Salva nuovo movimento (ora usa db.from)
+        async function saveTransaction(e) {
+            e.preventDefault();
+            const btn = document.getElementById('saveBtn');
+            btn.innerHTML = 'Salvataggio...';
+
+            const amount = parseFloat(document.getElementById('txAmount').value) || 0;
+            const date = document.getElementById('txDate').value;
+            const category_id = document.getElementById('txCategory').value;
+            let description = document.getElementById('txDesc').value.trim();
+            if(!description) description = CATEGORIES[category_id].label;
+
+            try {
+                const { error } = await db.from('transactions').insert([{ type: formType, amount, date, category_id, description }]);
+                if (error) throw error;
+                closeModal();
+                loadData();
+            } catch (err) {
+                alert("Errore: " + err.message);
+            } finally {
+                btn.innerHTML = `<i data-lucide="save" class="w-5 h-5"></i> Salva`;
+                lucide.createIcons();
+            }
+        }
+
+        // CORE: Cancella movimento (ora usa db.from)
+        async function deleteTx(id) {
+            if(!confirm('Vuoi davvero cancellare questo movimento?')) return;
+            await db.from('transactions').delete().eq('id', id);
+            loadData();
+        }
+
+        // UI: Gestione Tab e Modale
+        function switchTab(tabId, element) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+            document.getElementById('page-' + tabId).classList.add('active');
+            if(tabId === 'stats') drawChart();
+        }
+
+        function openModal() {
+            document.getElementById('modalOverlay').classList.add('active');
+            document.getElementById('addModal').classList.add('active');
+            document.getElementById('txDate').valueAsDate = new Date();
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+            document.getElementById('addModal').classList.remove('active');
+            document.getElementById('addForm').reset();
+            setTxType('expense');
+        }
+
+        function setTxType(type) {
+            formType = type;
+            const btnOut = document.getElementById('btnOut');
+            const btnIn = document.getElementById('btnIn');
+            if(type === 'expense') {
+                btnOut.className = "flex-1 py-2 text-sm font-semibold rounded-lg bg-black text-white dark:bg-white dark:text-black";
+                btnIn.className = "flex-1 py-2 text-sm font-semibold rounded-lg text-gray-500";
+            } else {
+                btnIn.className = "flex-1 py-2 text-sm font-semibold rounded-lg bg-green-500 text-white";
+                btnOut.className = "flex-1 py-2 text-sm font-semibold rounded-lg text-gray-500";
+                document.getElementById('txCategory').value = 'salary';
+            }
+        }
+
+        function setListFilter(filter, element) {
+            currentFilter = filter;
+            document.querySelectorAll('.chip').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            renderList();
+        }
+
+        // UI: Grafico
+        function drawChart() {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            const expenses = allTransactions.filter(t => t.type === 'expense' && new Date(t.date).getMonth() === new Date().getMonth());
+            const totals = {};
+
+            expenses.forEach(t => {
+                const label = CATEGORIES[t.category_id] ? CATEGORIES[t.category_id].label : 'Altro';
+                totals[label] = (totals[label] || 0) + parseFloat(t.amount);
+            });
+
+            if (chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(totals).length ? Object.keys(totals) : ['Nessun dato'],
+                    datasets: [{
+                        data: Object.values(totals).length ? Object.values(totals) : [1],
+                        backgroundColor: Object.values(totals).length ? ['#FF3B30', '#FF9500', '#FFCC00', '#34C759', '#5AC8FA', '#007AFF'] : ['#E5E5EA'],
+                        borderWidth: 0
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '75%' }
+            });
+        }
+
+        // Avvio automatico
+        loadData();
+    </script>
 </body>
 </html>
