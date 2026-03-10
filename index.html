@@ -686,11 +686,29 @@ input:checked+.tog-sl::after{transform:translateX(20px)}
   </div>
 
   <div class="card p-5 space-y-4">
-    <h3 class="text-[10px] font-black uppercase tracking-widest" style="color:var(--br)">Conti & Wallet</h3>
-    <div id="wList" class="flex flex-wrap gap-2"></div>
-    <div class="flex gap-2">
-      <input type="text" id="nWallet" placeholder="Nuovo conto..." class="inp py-2.5 text-sm flex-1">
-      <button onclick="addWallet()" class="px-4 py-2.5 rounded-xl font-bold text-sm text-white" style="background:var(--t)">+</button>
+    <div class="flex justify-between items-center">
+      <h3 class="text-[10px] font-black uppercase tracking-widest" style="color:var(--br)">Conti & Wallet</h3>
+      <span id="accsDbBadge" class="hidden text-[9px] font-bold px-2 py-0.5 rounded-full" style="background:rgba(0,200,150,.12);color:var(--ok)">☁ DB</span>
+    </div>
+    <div id="wList" class="space-y-2"></div>
+    <!-- Aggiungi conto -->
+    <div class="rounded-2xl p-3 space-y-2" style="background:var(--bg2)">
+      <p class="text-[9px] font-bold uppercase tracking-wider" style="color:var(--t2)">Nuovo conto</p>
+      <div class="flex gap-2">
+        <input type="text" id="nWallet" placeholder="Nome conto..." class="inp py-2 text-sm flex-1">
+        <select id="nWalletType" class="inp py-2 text-xs w-28 flex-shrink-0">
+          <option value="checking">💳 Corrente</option>
+          <option value="savings">🏦 Risparmi</option>
+          <option value="cash">💵 Contanti</option>
+          <option value="credit">💳 Credito</option>
+          <option value="invest">📈 Invest.</option>
+        </select>
+      </div>
+      <div class="flex gap-2 items-center">
+        <input type="number" id="nWalletBal" placeholder="Saldo iniziale €" class="inp py-2 text-sm flex-1" step="0.01">
+        <div id="nWalletColorDot" onclick="cycleAccColor()" title="Cambia colore" style="width:32px;height:32px;border-radius:50%;background:#0066FF;cursor:pointer;flex-shrink:0;border:3px solid rgba(255,255,255,.3)"></div>
+      </div>
+      <button onclick="addWallet()" class="gbtn w-full py-2.5 rounded-xl text-sm font-bold">+ Aggiungi Conto</button>
     </div>
   </div>
 
@@ -720,11 +738,23 @@ input:checked+.tog-sl::after{transform:translateX(20px)}
     <div id="sbStatus" class="flex items-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold" style="background:var(--bg2)">
       <div id="sbDot" class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:#999"></div>
       <span id="sbTxt" class="flex-1">Non configurato</span>
+      <button onclick="syncNow()" class="text-[9px] font-bold px-2 py-0.5 rounded-lg" style="background:rgba(0,102,255,.15);color:var(--br)">↺ Sync</button>
     </div>
-    <p class="text-[11px] leading-relaxed" style="color:var(--t2)">
-      Inserisci le credenziali del tuo progetto Supabase. Le trovi in <b>Project Settings → API</b>.<br>
-      Tabella necessaria: <code style="background:var(--bg2);padding:.1rem .3rem;border-radius:.3rem">transactions</code>
-    </p>
+    <!-- Schema SQL accordion -->
+    <details class="rounded-xl overflow-hidden" style="border:1px solid var(--bo)">
+      <summary class="flex justify-between items-center p-3 text-xs font-bold cursor-pointer list-none" style="background:var(--bg2);color:var(--t2)">
+        <span>📋 Schema SQL — incolla nel SQL Editor di Supabase</span>
+        <i data-lucide="chevron-down" class="w-3.5 h-3.5 flex-shrink-0"></i>
+      </summary>
+      <div class="p-3 overflow-x-auto" style="background:var(--card2)">
+        <pre id="sqlSchemaEl" class="text-[9px] leading-relaxed whitespace-pre-wrap" style="color:var(--ok);font-family:monospace"></pre>
+        <button onclick="copySQLSchema()" class="mt-2 px-3 py-1.5 rounded-xl text-[10px] font-bold" style="background:rgba(0,102,255,.1);color:var(--br)">📋 Copia Schema</button>
+      </div>
+    </details>
+    <!-- Migrate local → DB -->
+    <button onclick="migrateLocalToDB()" class="w-full py-2.5 rounded-xl text-xs font-bold flex justify-center items-center gap-2" style="background:rgba(0,200,150,.1);color:var(--ok)">
+      <i data-lucide="database" class="w-3.5 h-3.5"></i>Migra dati locali → Database
+    </button>
     <div>
       <label class="text-[10px] font-bold uppercase tracking-wider block mb-1.5" style="color:var(--t2)">Project URL</label>
       <input type="url" id="sbUrlInp" class="inp text-xs" placeholder="https://abcdefgh.supabase.co" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
@@ -877,59 +907,400 @@ const ACHS=[
 ];
 
 /* ============================================================
-   PERSIST HELPERS
+   PERSIST HELPERS — legacy compat (scrittura locale immediata)
+   Ogni saveCfg() ora pusha al DB in background via DBS
 ============================================================ */
 function saveTxs(){
   localStorage.setItem('mpxData2', JSON.stringify(S.txs));
   localStorage.setItem('mpxMeta2', JSON.stringify(S._localMeta||{}));
 }
-function saveCfg(){ localStorage.setItem('mpxCfg2', JSON.stringify(CFG)); }
-function loadTxs(){
-  try{ return JSON.parse(localStorage.getItem('mpxData2')||'[]'); }
-  catch(e){ return []; }
+function saveCfg(){
+  localStorage.setItem('mpxCfg2', JSON.stringify(CFG));
+  if(!OFFLINE && db) DBS.pushSettings().catch(()=>{});
 }
-function loadMeta(){
-  try{ return JSON.parse(localStorage.getItem('mpxMeta2')||'{}'); }
-  catch(e){ return {}; }
-}
-function loadCfg(){
-  try{ return JSON.parse(localStorage.getItem('mpxCfg2')||'{}'); }
-  catch(e){ return {}; }
+function loadTxs(){ try{ return JSON.parse(localStorage.getItem('mpxData2')||'[]'); }catch(e){ return []; } }
+function loadMeta(){ try{ return JSON.parse(localStorage.getItem('mpxMeta2')||'{}'); }catch(e){ return {}; } }
+function loadCfg(){ try{ return JSON.parse(localStorage.getItem('mpxCfg2')||'{}'); }catch(e){ return {}; } }
+
+/* ============================================================
+   SQL SCHEMA — 10 tabelle complete
+============================================================ */
+const SQL_SCHEMA=`-- ═══════════════════════════════════════════════════
+-- MONEY PRO X  —  Schema Supabase completo v2
+-- Incolla nel SQL Editor → Esegui
+-- ═══════════════════════════════════════════════════
+
+-- 1. Transazioni (già esistente)
+CREATE TABLE IF NOT EXISTS transactions (
+  id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  type        text NOT NULL CHECK (type IN ('expense','income','transfer')),
+  amount      numeric(12,2) NOT NULL CHECK (amount > 0),
+  category_id text DEFAULT 'other',
+  description text DEFAULT '',
+  date        date NOT NULL,
+  account     text DEFAULT 'Principale',
+  recurring   boolean DEFAULT false,
+  created_at  timestamptz DEFAULT now()
+);
+
+-- 2. Conti
+CREATE TABLE IF NOT EXISTS accounts (
+  id              uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name            text NOT NULL UNIQUE,
+  type            text DEFAULT 'checking',
+  color           text DEFAULT '#0066FF',
+  icon            text DEFAULT 'wallet',
+  initial_balance numeric(12,2) DEFAULT 0,
+  sort_order      integer DEFAULT 0,
+  created_at      timestamptz DEFAULT now()
+);
+
+-- 3. Categorie personalizzate
+CREATE TABLE IF NOT EXISTS categories (
+  id         uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  key        text NOT NULL UNIQUE,
+  label      text NOT NULL,
+  icon       text DEFAULT 'tag',
+  color      text DEFAULT '#6B7280',
+  background text DEFAULT 'rgba(107,114,128,.12)',
+  sort_order integer DEFAULT 0,
+  created_at timestamptz DEFAULT now()
+);
+
+-- 4. Budget mensili
+CREATE TABLE IF NOT EXISTS budgets (
+  id           uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  category_key text NOT NULL UNIQUE,
+  amount       numeric(12,2) NOT NULL,
+  period       text DEFAULT 'monthly',
+  updated_at   timestamptz DEFAULT now()
+);
+
+-- 5. Obiettivi di risparmio
+CREATE TABLE IF NOT EXISTS goals (
+  id         uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name       text NOT NULL,
+  target     numeric(12,2) NOT NULL,
+  current    numeric(12,2) DEFAULT 0,
+  deadline   date,
+  completed  boolean DEFAULT false,
+  color      text DEFAULT '#0066FF',
+  created_at timestamptz DEFAULT now()
+);
+
+-- 6. Debiti & Crediti
+CREATE TABLE IF NOT EXISTS debts (
+  id         uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  person     text NOT NULL,
+  amount     numeric(12,2) NOT NULL,
+  type       text NOT NULL CHECK (type IN ('borrow','lend')),
+  note       text DEFAULT '',
+  date       date NOT NULL,
+  settled    boolean DEFAULT false,
+  created_at timestamptz DEFAULT now()
+);
+
+-- 7. Abbonamenti
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id         uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name       text NOT NULL,
+  amount     numeric(12,2) NOT NULL,
+  frequency  text DEFAULT 'monthly',
+  next_date  date,
+  active     boolean DEFAULT true,
+  color      text,
+  created_at timestamptz DEFAULT now()
+);
+
+-- 8. Template transazioni
+CREATE TABLE IF NOT EXISTS templates (
+  id           uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name         text NOT NULL,
+  type         text NOT NULL,
+  amount       numeric(12,2),
+  category_key text,
+  account_name text,
+  description  text,
+  tags         text DEFAULT '[]',
+  created_at   timestamptz DEFAULT now()
+);
+
+-- 9. Note / To-Do
+CREATE TABLE IF NOT EXISTS notes (
+  id         uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  text       text NOT NULL,
+  done       boolean DEFAULT false,
+  date       date NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+-- 10. Impostazioni chiave-valore
+CREATE TABLE IF NOT EXISTS settings (
+  key        text PRIMARY KEY,
+  value      text,
+  updated_at timestamptz DEFAULT now()
+);`;
+
+function copySQLSchema(){
+  navigator.clipboard?.writeText(SQL_SCHEMA).then(()=>toast('Schema copiato ✓','success')).catch(()=>toast('Copia dal box manualmente','warn'));
 }
 
 /* ============================================================
-   INIT
+   DBS — Database Sync Layer
+   Ogni entità ha: load (DB → memoria + localStorage) e save/delete
 ============================================================ */
-function init(){
-  try{ CFG = Object.assign(CFG, loadCfg()); }catch(e){}
-  if(!localStorage.getItem('mpxCfg2') && window.matchMedia('(prefers-color-scheme:dark)').matches) CFG.theme='dark';
-  if(!CFG.templates) CFG.templates=[];
-  if(!CFG.notes) CFG.notes=[];
-  if(!CFG.recurringTxs) CFG.recurringTxs=[];
-  if(!CFG.fx) CFG.fx={ EUR:1, USD:1.08, GBP:0.86, JPY:163, CHF:0.96, CAD:1.47 };
-  if(!CFG.budgets) CFG.budgets={};
-  if(!CFG.ach) CFG.ach={};
-  if(!CFG.wallets||!CFG.wallets.length) CFG.wallets=['Principale','Contanti','Risparmi'];
+const DBS={
 
+  /* ── COLORI ACCOUNT ──────────────────────────────────── */
+  _acColors:['#0066FF','#00C896','#7C3AED','#FF9500','#FF3B5C','#5AC8FA','#FF6B00','#4CAF50'],
+  _acColorIdx:0,
+  nextColor(){ return this._acColors[this._acColorIdx++ % this._acColors.length]; },
+  _iconForType(t){ return {checking:'credit-card',savings:'piggy-bank',cash:'banknote',credit:'credit-card',invest:'trending-up'}[t]||'wallet'; },
+
+  /* ── SETTINGS ────────────────────────────────────────── */
+  async pushSettings(){
+    if(!db) return;
+    const rows=['currency','theme','color','goalName','goalVal','ach','pinEnabled','pin','showBalance','defaultWallet','recurringTxs','fx']
+      .map(k=>({key:k,value:JSON.stringify(CFG[k]??null),updated_at:new Date().toISOString()}));
+    try{ await db.from('settings').upsert(rows,{onConflict:'key'}); }catch(e){ console.warn('settings.push',e); }
+  },
+  async pullSettings(){
+    if(!db) return false;
+    try{
+      const {data,error}=await db.from('settings').select('key,value');
+      if(error||!data?.length) return false;
+      data.forEach(r=>{ try{ CFG[r.key]=JSON.parse(r.value); }catch(e){ CFG[r.key]=r.value; } });
+      localStorage.setItem('mpxCfg2',JSON.stringify(CFG));
+      return true;
+    }catch(e){ console.warn('settings.pull',e); return false; }
+  },
+
+  /* ── ACCOUNTS ────────────────────────────────────────── */
+  _saveLocal(){ localStorage.setItem('mpx_acc',JSON.stringify(CFG._accounts)); },
+  async loadAccounts(){
+    // try DB first
+    if(db){
+      try{
+        const {data,error}=await db.from('accounts').select('*').order('sort_order');
+        if(!error && data?.length){
+          CFG._accounts=data.map(r=>({id:r.id,name:r.name,type:r.type||'checking',color:r.color||'#0066FF',icon:r.icon||'wallet',initialBalance:+r.initial_balance||0}));
+          CFG.wallets=CFG._accounts.map(a=>a.name);
+          this._saveLocal();
+          const b=document.getElementById('accsDbBadge'); if(b) b.classList.remove('hidden');
+          return;
+        }
+      }catch(e){ console.warn('accounts.load DB',e); }
+    }
+    // localStorage fallback
+    try{
+      const lc=JSON.parse(localStorage.getItem('mpx_acc')||'null');
+      if(lc?.length){ CFG._accounts=lc; CFG.wallets=lc.map(a=>a.name); return; }
+    }catch(e){}
+    // defaults
+    const defs=[
+      {id:'lac1',name:'Principale',type:'checking',color:'#0066FF',icon:'credit-card',initialBalance:0},
+      {id:'lac2',name:'Contanti',  type:'cash',    color:'#00C896',icon:'banknote',   initialBalance:0},
+      {id:'lac3',name:'Risparmi',  type:'savings', color:'#7C3AED',icon:'piggy-bank', initialBalance:0},
+    ];
+    CFG._accounts=defs; CFG.wallets=defs.map(a=>a.name); this._saveLocal();
+  },
+  async saveAccount(acc){
+    // local update
+    const idx=CFG._accounts.findIndex(a=>a.id===acc.id);
+    if(idx>=0) CFG._accounts[idx]=acc; else { CFG._accounts.push(acc); }
+    CFG.wallets=CFG._accounts.map(a=>a.name);
+    this._saveLocal();
+    if(!db) return acc;
+    const row={name:acc.name,type:acc.type,color:acc.color,icon:acc.icon,initial_balance:acc.initialBalance||0,sort_order:CFG._accounts.indexOf(acc)};
+    try{
+      const isLocal=!acc.id||acc.id.startsWith('lac');
+      const res=isLocal?await db.from('accounts').insert([row]).select():await db.from('accounts').update(row).eq('id',acc.id).select();
+      if(!res.error && res.data?.[0]){
+        const old=acc.id; acc.id=res.data[0].id;
+        const i=CFG._accounts.findIndex(a=>a.id===old||a.id===res.data[0].id);
+        if(i>=0) CFG._accounts[i].id=acc.id;
+        this._saveLocal();
+      }
+    }catch(e){ console.warn('accounts.save',e); }
+    return acc;
+  },
+  async deleteAccount(id){
+    CFG._accounts=CFG._accounts.filter(a=>a.id!==id);
+    CFG.wallets=CFG._accounts.map(a=>a.name);
+    this._saveLocal();
+    if(!db||id.startsWith('lac')) return;
+    try{ await db.from('accounts').delete().eq('id',id); }catch(e){ console.warn('accounts.delete',e); }
+  },
+  async renameAccount(id,newName,oldName){
+    const acc=CFG._accounts.find(a=>a.id===id); if(!acc) return;
+    acc.name=newName; CFG.wallets=CFG._accounts.map(a=>a.name); this._saveLocal();
+    // rename in transactions too
+    if(!db||id.startsWith('lac')) return;
+    try{
+      await db.from('accounts').update({name:newName}).eq('id',id);
+      // also update transactions that reference the old account name
+      await db.from('transactions').update({account:newName}).eq('account',oldName);
+    }catch(e){ console.warn('accounts.rename',e); }
+  },
+
+  /* ── BUDGETS ──────────────────────────────────────────── */
+  async loadBudgets(){
+    if(db){
+      try{
+        const {data,error}=await db.from('budgets').select('*');
+        if(!error && data){ CFG.budgets={}; data.forEach(r=>CFG.budgets[r.category_key]=+r.amount); localStorage.setItem('mpx_bud',JSON.stringify(CFG.budgets)); return; }
+      }catch(e){ console.warn('budgets.load',e); }
+    }
+    try{ CFG.budgets=JSON.parse(localStorage.getItem('mpx_bud')||'{}'); }catch(e){ CFG.budgets={}; }
+  },
+  async saveBudget(catKey,amount){
+    if(amount&&+amount>0) CFG.budgets[catKey]=+amount; else delete CFG.budgets[catKey];
+    localStorage.setItem('mpx_bud',JSON.stringify(CFG.budgets));
+    if(!db) return;
+    try{
+      if(amount&&+amount>0) await db.from('budgets').upsert({category_key:catKey,amount:+amount,updated_at:new Date().toISOString()},{onConflict:'category_key'});
+      else await db.from('budgets').delete().eq('category_key',catKey);
+    }catch(e){ console.warn('budgets.save',e); }
+  },
+
+  /* ── CATEGORIES ──────────────────────────────────────── */
+  async loadCustomCategories(){
+    if(db){
+      try{
+        const {data,error}=await db.from('categories').select('*').order('sort_order');
+        if(!error && data){ data.forEach(r=>{ if(!CATS[r.key]) CATS[r.key]={l:r.label,ic:r.icon,col:r.color,bg:r.background,kw:[],_dbid:r.id,_custom:true}; }); localStorage.setItem('mpx_cats',JSON.stringify(data)); return; }
+      }catch(e){ console.warn('cats.load',e); }
+    }
+    try{ const lc=JSON.parse(localStorage.getItem('mpx_cats')||'[]'); lc.forEach(r=>{ if(!CATS[r.key]) CATS[r.key]={l:r.label,ic:r.icon,col:r.color,bg:r.background,kw:[],_dbid:r.id,_custom:true}; }); }catch(e){}
+  },
+
+  /* ── NOTES ────────────────────────────────────────────── */
+  _saveNotes(){ localStorage.setItem('mpx_notes',JSON.stringify(CFG.notes)); },
+  async loadNotes(){
+    if(db){
+      try{
+        const {data,error}=await db.from('notes').select('*').order('created_at',{ascending:false});
+        if(!error && data){ CFG.notes=data.map(r=>({id:r.id,text:r.text,done:r.done,date:r.date})); this._saveNotes(); return; }
+      }catch(e){ console.warn('notes.load',e); }
+    }
+    try{ CFG.notes=JSON.parse(localStorage.getItem('mpx_notes')||'[]'); }catch(e){ CFG.notes=[]; }
+  },
+  async addNote(text){
+    const note={id:'ln'+Date.now(),text,done:false,date:new Date().toISOString().split('T')[0]};
+    CFG.notes.unshift(note); this._saveNotes();
+    if(!db) return note;
+    try{
+      const {data}=await db.from('notes').insert([{text:note.text,done:false,date:note.date}]).select();
+      if(data?.[0]){ CFG.notes[0].id=data[0].id; this._saveNotes(); }
+    }catch(e){ console.warn('notes.add',e); }
+    return note;
+  },
+  async updateNote(id,patch){
+    const n=CFG.notes.find(x=>x.id===id); if(!n) return; Object.assign(n,patch); this._saveNotes();
+    if(!db||id.startsWith('ln')) return;
+    try{ await db.from('notes').update(patch).eq('id',id); }catch(e){ console.warn('notes.update',e); }
+  },
+  async deleteNote(id){
+    CFG.notes=CFG.notes.filter(n=>n.id!==id); this._saveNotes();
+    if(!db||id.toString().startsWith('ln')) return;
+    try{ await db.from('notes').delete().eq('id',id); }catch(e){ console.warn('notes.delete',e); }
+  },
+
+  /* ── TEMPLATES ────────────────────────────────────────── */
+  _saveTpl(){ localStorage.setItem('mpx_tpl',JSON.stringify(CFG.templates)); },
+  async loadTemplates(){
+    if(db){
+      try{
+        const {data,error}=await db.from('templates').select('*').order('created_at',{ascending:false});
+        if(!error && data){ CFG.templates=data.map(r=>({id:r.id,name:r.name,type:r.type,amount:+r.amount,category_id:r.category_key||'other',account:r.account_name||'',description:r.description||'',tags:r.tags||'[]'})); this._saveTpl(); return; }
+      }catch(e){ console.warn('templates.load',e); }
+    }
+    try{ CFG.templates=JSON.parse(localStorage.getItem('mpx_tpl')||'[]'); }catch(e){ CFG.templates=[]; }
+  },
+  async addTemplate(tpl){
+    tpl.id='lt'+Date.now(); CFG.templates.unshift(tpl); this._saveTpl();
+    if(!db) return tpl;
+    try{
+      const {data}=await db.from('templates').insert([{name:tpl.name,type:tpl.type,amount:tpl.amount||null,category_key:tpl.category_id||null,account_name:tpl.account||null,description:tpl.description||null,tags:tpl.tags||'[]'}]).select();
+      if(data?.[0]){ CFG.templates[0].id=data[0].id; this._saveTpl(); }
+    }catch(e){ console.warn('templates.add',e); }
+    return tpl;
+  },
+  async deleteTemplate(id){
+    CFG.templates=CFG.templates.filter(t=>t.id!==id); this._saveTpl();
+    if(!db||id.toString().startsWith('lt')) return;
+    try{ await db.from('templates').delete().eq('id',id); }catch(e){ console.warn('templates.delete',e); }
+  },
+
+  /* ── GOALS (legacy CFG.goalName/goalVal kept) ─────────── */
+  // goalName e goalVal rimangono in settings per semplicità
+
+  /* ── MIGRATE LOCAL → DB ──────────────────────────────── */
+  async migrateAll(){
+    if(!db){ toast('Connetti Supabase prima','warn'); return; }
+    toast('Migrazione in corso...','info');
+    let ok=0,fail=0;
+    const run=async(fn,label)=>{ try{ await fn(); ok++; }catch(e){ fail++; console.warn(label,e); } };
+
+    await run(async()=>{
+      const rows=CFG._accounts.map((a,i)=>({name:a.name,type:a.type,color:a.color,icon:a.icon,initial_balance:a.initialBalance||0,sort_order:i}));
+      if(rows.length) await db.from('accounts').upsert(rows,{onConflict:'name'});
+    },'accounts');
+    await run(async()=>{
+      const rows=Object.entries(CFG.budgets||{}).map(([k,v])=>({category_key:k,amount:v,updated_at:new Date().toISOString()}));
+      if(rows.length) await db.from('budgets').upsert(rows,{onConflict:'category_key'});
+    },'budgets');
+    await run(async()=>{
+      const rows=(CFG.templates||[]).map(t=>({name:t.name,type:t.type,amount:t.amount||null,category_key:t.category_id||null,account_name:t.account||null,description:t.description||null,tags:t.tags||'[]'}));
+      if(rows.length) await db.from('templates').insert(rows);
+    },'templates');
+    await run(async()=>{
+      const rows=(CFG.notes||[]).map(n=>({text:n.text,done:n.done||false,date:n.date}));
+      if(rows.length) await db.from('notes').insert(rows);
+    },'notes');
+    await run(()=>this.pushSettings(),'settings');
+
+    toast(`✅ Migrazione: ${ok} OK · ${fail} errori`,'success');
+    await loadData(true);
+    renderAll();
+  },
+};
+
+/* ============================================================
+   INIT — asincrono: localStorage subito, poi DB in background
+============================================================ */
+async function init(){
+  // 1. Carica CFG da localStorage (fast, sincrono)
+  try{ CFG=Object.assign(CFG,loadCfg()); }catch(e){}
+  if(!localStorage.getItem('mpxCfg2') && window.matchMedia('(prefers-color-scheme:dark)').matches) CFG.theme='dark';
+  if(!CFG.templates)     CFG.templates=[];
+  if(!CFG.notes)         CFG.notes=[];
+  if(!CFG.recurringTxs)  CFG.recurringTxs=[];
+  if(!CFG.fx)            CFG.fx={EUR:1,USD:1.08,GBP:0.86,JPY:163,CHF:0.96,CAD:1.47};
+  if(!CFG.budgets)       CFG.budgets={};
+  if(!CFG.ach)           CFG.ach={};
+  if(!CFG._accounts)     CFG._accounts=[];
+
+  // 2. Tema e colore immediati
   applyTheme();
   applyColor(CFG.color||'#0066FF');
 
-  try{ document.getElementById('darkT').checked = CFG.theme==='dark'; }catch(e){}
-  try{ document.getElementById('currS').value   = CFG.currency; }catch(e){}
-  try{ document.getElementById('gNameI').value  = CFG.goalName||''; }catch(e){}
-  try{ document.getElementById('gValI').value   = CFG.goalVal||''; }catch(e){}
+  // 3. UI base
+  try{ document.getElementById('darkT').checked=CFG.theme==='dark'; }catch(e){}
+  try{ document.getElementById('currS').value=CFG.currency||'€'; }catch(e){}
+  try{ document.getElementById('gNameI').value=CFG.goalName||''; }catch(e){}
+  try{ document.getElementById('gValI').value=CFG.goalVal||''; }catch(e){}
 
-  // populate category selects
+  // 4. Carica conti da localStorage/defaults
+  await DBS.loadAccounts();
+
+  // 5. Popola select categorie
   ['txCat','fCat'].forEach(id=>{
-    const sel = document.getElementById(id);
-    if(!sel) return;
-    // avoid duplicates on re-init
-    if(sel.options.length > 1) return;
-    Object.entries(CATS).forEach(([k,c])=>{
-      const o=document.createElement('option'); o.value=k; o.textContent=c.l; sel.appendChild(o);
-    });
+    const sel=document.getElementById(id); if(!sel||sel.options.length>1) return;
+    Object.entries(CATS).forEach(([k,c])=>{ const o=document.createElement('option'); o.value=k; o.textContent=c.l; sel.appendChild(o); });
   });
 
+  // 6. Setup UI componenti
   try{ setGreeting(); }catch(e){}
   try{ renderWalletSettings(); }catch(e){}
   try{ populateWalletSel(); }catch(e){}
@@ -937,23 +1308,20 @@ function init(){
   try{ buildBudgetList(); }catch(e){}
   try{ buildColorPicker(); }catch(e){}
   try{ renderAchievements(); }catch(e){}
+  try{ renderSQLSchema(); }catch(e){}
 
-  // load data from localStorage — always works offline
-  try{ S._localMeta = loadMeta(); }catch(e){ S._localMeta={}; }
-  try{ S.txs = loadTxs(); }catch(e){ S.txs=[]; }
+  // 7. Dati transazioni da localStorage
+  try{ S._localMeta=loadMeta(); }catch(e){ S._localMeta={}; }
+  try{ S.txs=loadTxs(); }catch(e){ S.txs=[]; }
   try{ injectRecurring(); }catch(e){}
 
+  // 8. Prima render con dati locali
   renderAll();
   updateSyncStatus();
-  // refresh Supabase status panel in settings
-  setTimeout(()=>{ try{ refreshSbStatus(); }catch(e){} }, 100);
-  // if Supabase is configured, load fresh data from server
-  if(!OFFLINE && db){
-    loadData(true);
-  }
+  setTimeout(()=>{ try{ refreshSbStatus(); }catch(e){} },100);
 
-  // keyboard shortcuts
-  document.addEventListener('keydown', e=>{
+  // 9. Keyboard shortcuts
+  document.addEventListener('keydown',e=>{
     if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT') return;
     if(e.key==='n'||e.key==='N') openAdd();
     if(e.key==='k'||e.key==='K') openCalc();
@@ -964,15 +1332,58 @@ function init(){
     if(e.key==='Escape') closeAll();
   });
 
-  // pin lock
+  // 10. PIN
   try{
-    if(CFG.pinEnabled && CFG.pin){
-      const ps=document.getElementById('pinScreen');
-      if(ps) ps.classList.remove('hidden');
-      const sk=document.getElementById('pinSkip');
-      if(sk) sk.style.display='none';
-    }
+    if(CFG.pinEnabled&&CFG.pin){ const ps=document.getElementById('pinScreen'); if(ps) ps.classList.remove('hidden'); const sk=document.getElementById('pinSkip'); if(sk) sk.style.display='none'; }
   }catch(e){}
+
+  // 11. Carica tutto dal DB in background
+  if(!OFFLINE && db){
+    _syncAllFromDB();
+  }
+}
+
+async function _syncAllFromDB(){
+  updateSyncStatus('loading');
+  try{
+    await Promise.all([
+      DBS.pullSettings(),
+      DBS.loadAccounts(),
+      DBS.loadCustomCategories(),
+      DBS.loadBudgets(),
+      DBS.loadTemplates(),
+      DBS.loadNotes(),
+      loadData(true),
+    ]);
+    // re-apply settings pulled from DB
+    try{ document.getElementById('darkT').checked=CFG.theme==='dark'; applyTheme(); }catch(e){}
+    try{ document.getElementById('currS').value=CFG.currency||'€'; }catch(e){}
+    applyColor(CFG.color||'#0066FF');
+    buildBudgetList();
+    buildColorPicker();
+    renderWalletSettings();
+    populateWalletSel();
+    renderAchievements();
+    renderAll();
+    updateSyncStatus('ok');
+    toast('✅ Sincronizzato col database','success');
+  }catch(err){
+    console.error('_syncAllFromDB',err);
+    updateSyncStatus('error');
+  }
+}
+
+function renderSQLSchema(){
+  const el=document.getElementById('sqlSchemaEl'); if(el) el.textContent=SQL_SCHEMA;
+}
+function migrateLocalToDB(){ DBS.migrateAll(); }
+
+/* ── Account color picker ── */
+const _ACC_COLORS=['#0066FF','#00C896','#7C3AED','#FF9500','#FF3B5C','#5AC8FA','#FF6B00','#4CAF50'];
+let _accColorIdx=0;
+function cycleAccColor(){
+  _accColorIdx=(_accColorIdx+1)%_ACC_COLORS.length;
+  const dot=document.getElementById('nWalletColorDot'); if(dot) dot.style.background=_ACC_COLORS[_accColorIdx];
 }
 
 /* ============================================================
@@ -1202,16 +1613,17 @@ function editTx(id){
    POPULATE WALLET SELECT
 ============================================================ */
 function populateWalletSel(){
-  const opts = CFG.wallets.map(w=>`<option value="${w}">${w}</option>`).join('');
+  const wallets=CFG._accounts?.map(a=>a.name)||CFG.wallets||['Principale'];
+  const opts = wallets.map(w=>`<option value="${w}">${w}</option>`).join('');
   ['txAcc','txAccFrom','txAccTo'].forEach(id=>{
     const el=document.getElementById(id);
     if(el){ el.innerHTML=opts; }
   });
-  if(CFG.wallets.length>1) document.getElementById('txAccTo').value=CFG.wallets[1];
+  if(wallets.length>1) { const el=document.getElementById('txAccTo'); if(el) el.value=wallets[1]; }
   const mapAccDef=document.getElementById('mapAccDef');
   if(mapAccDef) mapAccDef.innerHTML=opts;
   const defW = document.getElementById('defWalletS');
-  if(defW){ defW.innerHTML=opts; defW.value=CFG.defaultWallet||CFG.wallets[0]; }
+  if(defW){ defW.innerHTML=opts; defW.value=CFG.defaultWallet||wallets[0]; }
 }
 
 /* ============================================================
@@ -1523,15 +1935,20 @@ function renderList(){
 function renderWallets(wB, totalNet){
   const el=document.getElementById('wDash');
   if(!el) return;
+  const accounts=CFG._accounts?.length ? CFG._accounts : (CFG.wallets||[]).map(w=>({name:w,color:'var(--br)',icon:'wallet',initialBalance:0}));
   el.innerHTML=`
     <div onclick="filterWallet('all')" class="wc flex-shrink-0 w-36 card p-4 border cursor-pointer" style="border-color:${S.wFilter==='all'?'var(--br)':'var(--bo)'}">
       <p class="text-[9px] font-bold uppercase tracking-wider mb-2" style="color:var(--t2)"><i data-lucide="layout-grid" class="w-3 h-3 inline mr-1"></i>Tutti</p>
       <p class="text-xl font-black" style="font-variant-numeric:tabular-nums;color:${totalNet<0?'var(--bd)':'var(--t)'}">${fmtShort(totalNet)}</p>
-    </div>`+CFG.wallets.map(w=>`
-    <div onclick="filterWallet('${w}')" class="wc flex-shrink-0 w-36 card p-4 border cursor-pointer" style="border-color:${S.wFilter===w?'var(--br)':'var(--bo)'}">
-      <p class="text-[9px] font-bold uppercase tracking-wider mb-2 truncate" style="color:var(--t2)"><i data-lucide="wallet" class="w-3 h-3 inline mr-1"></i>${w}</p>
-      <p class="text-xl font-black" style="font-variant-numeric:tabular-nums;color:${(wB[w]||0)<0?'var(--bd)':'var(--t)'}">${fmtShort(wB[w]||0)}</p>
-    </div>`).join('');
+    </div>`+accounts.map(acc=>{
+      const bal=(wB[acc.name]||0)+(acc.initialBalance||0);
+      return `<div onclick="filterWallet('${acc.name}')" class="wc flex-shrink-0 w-36 card p-4 border cursor-pointer" style="border-color:${S.wFilter===acc.name?acc.color:'var(--bo)'}">
+        <p class="text-[9px] font-bold uppercase tracking-wider mb-2 truncate" style="color:${acc.color}">
+          <i data-lucide="${acc.icon||'wallet'}" class="w-3 h-3 inline mr-1"></i>${acc.name}
+        </p>
+        <p class="text-xl font-black" style="font-variant-numeric:tabular-nums;color:${bal<0?'var(--bd)':'var(--t)'}">${fmtShort(bal)}</p>
+      </div>`;
+    }).join('');
   lucide.createIcons();
 }
 function filterWallet(w){ haptic(); S.wFilter=w; updateDash(); renderList(); }
@@ -1758,12 +2175,12 @@ function switchTab(name, el){
 ============================================================ */
 function applyTheme(){
   document.body.classList.toggle('dark', CFG.theme==='dark'||(CFG.theme==='system'&&window.matchMedia('(prefers-color-scheme:dark)').matches));
-  document.getElementById('metaTheme').content=getComputedStyle(document.documentElement).getPropertyValue('--br').trim()||'#0066FF';
+  const mt=document.getElementById('metaTheme'); if(mt) mt.content=getComputedStyle(document.documentElement).getPropertyValue('--br').trim()||'#0066FF';
 }
 function applyColor(hex){
   CFG.color=hex;
   document.documentElement.style.setProperty('--br',hex);
-  document.getElementById('metaTheme').content=hex;
+  const mt=document.getElementById('metaTheme'); if(mt) mt.content=hex;
 }
 function toggleDark(v){ CFG.theme=v?'dark':'light'; applyTheme(); saveCfg(); }
 function saveSettings(){
@@ -1787,34 +2204,56 @@ function updateSyncStatus(state){
   }
 }
 function buildColorPicker(){
-  const el=document.getElementById('colorPicker');
+  const el=document.getElementById('colorPick')||document.getElementById('colorPicker');
   if(!el) return;
   const colors=['#0066FF','#7C3AED','#FF3B5C','#FF9500','#00C896','#FF6B00','#5AC8FA','#FF2D55'];
   el.innerHTML=colors.map(c=>`<div onclick="applyColor('${c}');saveCfg();buildColorPicker()" style="width:32px;height:32px;border-radius:50%;background:${c};cursor:pointer;border:3px solid ${CFG.color===c?'var(--t)':'transparent'};transition:.2s;box-shadow:${CFG.color===c?'0 0 0 2px '+c:'none'}"></div>`).join('');
 }
 function renderWalletSettings(){
-  const el=document.getElementById('walletList');
-  if(!el) return;
-  el.innerHTML=CFG.wallets.map((w,i)=>`
-    <div class="flex items-center gap-2 py-1.5">
-      <div class="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(0,102,255,.1)"><i data-lucide="wallet" class="w-3.5 h-3.5" style="color:var(--br)"></i></div>
-      <input type="text" value="${w}" onchange="renameWallet(${i},this.value)" class="inp flex-1 py-1.5 text-sm">
-      <button onclick="removeWallet(${i})" class="p-1.5 rounded-xl flex-shrink-0" style="background:rgba(255,59,92,.1);color:var(--bd)"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+  const el=document.getElementById('wList'); if(!el) return;
+  if(!CFG._accounts?.length){ el.innerHTML='<p class="text-xs py-2" style="color:var(--t2)">Nessun conto</p>'; return; }
+  const typeLabel={checking:'Corrente',savings:'Risparmi',cash:'Contanti',credit:'Credito',invest:'Investimenti'};
+  el.innerHTML=CFG._accounts.map(acc=>`
+    <div class="flex items-center gap-2 py-2 px-3 rounded-2xl" style="background:var(--bg2)">
+      <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style="background:${acc.color}22">
+        <i data-lucide="${acc.icon||'wallet'}" class="w-3.5 h-3.5" style="color:${acc.color}"></i>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-xs font-bold truncate">${acc.name}</p>
+        <p class="text-[9px]" style="color:var(--t2)">${typeLabel[acc.type]||acc.type} · saldo iniziale ${fmt(acc.initialBalance||0)}</p>
+      </div>
+      <input type="text" value="${acc.name}" onchange="renameWallet('${acc.id}',this.value,'${acc.name}')" class="inp w-24 py-1 text-xs text-right" placeholder="Rinomina">
+      <button onclick="removeWallet('${acc.id}')" class="p-1.5 rounded-xl flex-shrink-0" style="background:rgba(255,59,92,.1);color:var(--bd)"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
     </div>`).join('');
   lucide.createIcons();
 }
-function addWallet(){
-  const n=document.getElementById('newWallet')?.value.trim();
+async function addWallet(){
+  const n=document.getElementById('nWallet')?.value.trim();
   if(!n){toast('Inserisci un nome','warn');return;}
-  if(CFG.wallets.includes(n)){toast('Wallet già esistente','warn');return;}
-  CFG.wallets.push(n);
-  document.getElementById('newWallet').value='';
-  saveCfg(); renderWalletSettings(); populateWalletSel(); renderAll();
+  if(CFG._accounts?.find(a=>a.name===n)){toast('Conto già esistente','warn');return;}
+  const type=document.getElementById('nWalletType')?.value||'checking';
+  const bal=parseFloat(document.getElementById('nWalletBal')?.value)||0;
+  const color=_ACC_COLORS[_accColorIdx%_ACC_COLORS.length];
+  const icon={checking:'credit-card',savings:'piggy-bank',cash:'banknote',credit:'credit-card',invest:'trending-up'}[type]||'wallet';
+  const acc={id:'lac'+Date.now(),name:n,type,color,icon,initialBalance:bal};
+  document.getElementById('nWallet').value='';
+  if(document.getElementById('nWalletBal')) document.getElementById('nWalletBal').value='';
+  await DBS.saveAccount(acc);
+  renderWalletSettings(); populateWalletSel(); renderAll();
+  toast(`Conto "${n}" aggiunto ✓`,'success');
 }
-function renameWallet(i,v){ if(v.trim()) CFG.wallets[i]=v.trim(); saveCfg(); populateWalletSel(); renderAll(); }
-function removeWallet(i){
-  if(CFG.wallets.length<=1){toast('Serve almeno un conto','warn');return;}
-  CFG.wallets.splice(i,1); saveCfg(); renderWalletSettings(); populateWalletSel(); renderAll();
+async function renameWallet(id,newName,oldName){
+  if(!newName?.trim()) return;
+  await DBS.renameAccount(id,newName.trim(),oldName);
+  renderWalletSettings(); populateWalletSel(); renderAll();
+}
+async function removeWallet(id){
+  if(CFG._accounts.length<=1){toast('Serve almeno un conto','warn');return;}
+  const acc=CFG._accounts.find(a=>a.id===id);
+  if(!confirm(`Elimina il conto "${acc?.name}"?`)) return;
+  await DBS.deleteAccount(id);
+  renderWalletSettings(); populateWalletSel(); renderAll();
+  toast('Conto eliminato','warn');
 }
 function buildBudgetList(){
   const el=document.getElementById('budList');
@@ -1829,9 +2268,7 @@ function buildBudgetList(){
   }).join('');
 }
 function setBudget(cat,v){
-  if(v&&parseFloat(v)>0) CFG.budgets[cat]=parseFloat(v);
-  else delete CFG.budgets[cat];
-  saveCfg(); renderAll();
+  DBS.saveBudget(cat,v).then(()=>renderAll());
 }
 function renderAchievements(){
   const el=document.getElementById('achList');
@@ -1899,10 +2336,34 @@ function exportCurrentMonthPDF(){
 /* ============================================================
    WIPE
 ============================================================ */
-function wipeAll(){
-  if(prompt('Digita "RESET" per confermare')==='RESET'){
-    S.txs=[]; saveTxs(); renderAll(); toast('Dati cancellati','warn');
+async function wipeAll(){
+  if(prompt('Digita "RESET" per confermare')!=='RESET') return;
+  // local
+  S.txs=[]; S._localMeta={};
+  saveTxs();
+  CFG.budgets={}; CFG.templates=[]; CFG.notes=[]; CFG.ach={};
+  localStorage.setItem('mpx_acc','[]');
+  localStorage.setItem('mpx_bud','{}');
+  localStorage.setItem('mpx_notes','[]');
+  localStorage.setItem('mpx_tpl','[]');
+  localStorage.removeItem('mpxData2');
+  localStorage.removeItem('mpxCfg2');
+  // DB
+  if(db){
+    toast('Cancellazione database...','warn');
+    try{
+      await Promise.all([
+        db.from('transactions').delete().neq('id','00000000-0000-0000-0000-000000000000'),
+        db.from('accounts').delete().neq('id','00000000-0000-0000-0000-000000000000'),
+        db.from('budgets').delete().neq('id','00000000-0000-0000-0000-000000000000'),
+        db.from('notes').delete().neq('id','00000000-0000-0000-0000-000000000000'),
+        db.from('templates').delete().neq('id','00000000-0000-0000-0000-000000000000'),
+        db.from('settings').delete().neq('key','__placeholder__'),
+      ]);
+    }catch(e){ console.warn('wipeAll DB',e); }
   }
+  renderAll();
+  toast('Tutti i dati cancellati','warn');
 }
 
 /* ============================================================
@@ -2051,15 +2512,14 @@ function smartSearch(){
 }
 
 // 6. TEMPLATES — SAVE TX AS TEMPLATE
-function saveAsTemplate(id){
+async function saveAsTemplate(id){
   haptic();
   const t=S.txs.find(x=>x.id===id);
   if(!t) return;
   const name=prompt('Nome template:',t.description||CATS[t.category_id]?.l||'Template');
   if(!name) return;
   if(!CFG.templates) CFG.templates=[];
-  CFG.templates.push({name, type:t.type, amount:t.amount, category_id:t.category_id, account:t.account, account_to:t.account_to, tags:t.tags});
-  saveCfg();
+  await DBS.addTemplate({name,type:t.type,amount:t.amount,category_id:t.category_id,account:t.account,account_to:t.account_to,tags:t.tags});
   toast('Template salvato ✓','success');
   unlockAch('tpl');
 }
@@ -2077,6 +2537,7 @@ function renderTemplateList(){
   el.innerHTML=CFG.templates.map((tpl,i)=>{
     const c=CATS[tpl.category_id]||CATS.other;
     const col=tpl.type==='expense'?'var(--bd)':tpl.type==='income'?'var(--ok)':'var(--wn)';
+    const tid=tpl.id||i;
     return `<div class="flex items-center gap-3 py-3 border-b last:border-0" style="border-color:var(--bo)">
       <div class="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0" style="background:${c.bg}"><i data-lucide="${c.ic}" class="w-4 h-4" style="color:${c.col}"></i></div>
       <div class="flex-1 min-w-0">
@@ -2085,7 +2546,7 @@ function renderTemplateList(){
       </div>
       <div class="flex gap-2">
         <button onclick="useTemplate(${i})" style="background:rgba(0,102,255,.1);color:var(--br);border-radius:.7rem;padding:.4rem .75rem;font-size:.75rem;font-weight:700">Usa</button>
-        <button onclick="deleteTemplate(${i})" style="background:rgba(255,59,92,.1);color:var(--bd);border-radius:.7rem;padding:.4rem;line-height:1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+        <button onclick="deleteTemplate('${tid}')" style="background:rgba(255,59,92,.1);color:var(--bd);border-radius:.7rem;padding:.4rem;line-height:1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
       </div>
     </div>`;
   }).join('');
@@ -2104,7 +2565,11 @@ function useTemplate(i){
     toast(`Template "${tpl.name}" caricato`,'success');
   },200);
 }
-function deleteTemplate(i){ CFG.templates.splice(i,1); saveCfg(); renderTemplateList(); }
+async function deleteTemplate(i){
+  const tpl=CFG.templates[i]; if(!tpl) return;
+  await DBS.deleteTemplate(tpl.id||i);
+  renderTemplateList();
+}
 
 // 8. SPLIT BILL
 function openSplit(){
@@ -2171,14 +2636,13 @@ function openNotes(){
   renderNotesList();
   openModal('notesM');
 }
-function addNote(){
+async function addNote(){
   const inp=document.getElementById('noteInp');
   const txt=inp?.value.trim();
   if(!txt){toast('Scrivi qualcosa prima','warn');return;}
   if(!CFG.notes) CFG.notes=[];
-  CFG.notes.unshift({id:Date.now(),text:txt,done:false,date:new Date().toISOString().split('T')[0]});
+  await DBS.addNote(txt);
   inp.value='';
-  saveCfg();
   renderNotesList();
   haptic();
 }
@@ -2186,18 +2650,25 @@ function renderNotesList(){
   const el=document.getElementById('notesList');
   if(!el||!CFG.notes) return;
   if(!CFG.notes.length){el.innerHTML='<p class="text-sm text-center py-4" style="color:var(--t2)">Nessuna nota ancora</p>';return;}
-  el.innerHTML=CFG.notes.map((n,i)=>`
+  el.innerHTML=CFG.notes.map(n=>`
     <div class="flex items-start gap-3 p-3 rounded-xl" style="background:var(--bg2)">
-      <button onclick="toggleNote(${i})" class="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all" style="border-color:${n.done?'var(--ok)':'var(--bo)'}; background:${n.done?'var(--ok)':'transparent'}">
+      <button onclick="toggleNote('${n.id}')" class="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all" style="border-color:${n.done?'var(--ok)':'var(--bo)'}; background:${n.done?'var(--ok)':'transparent'}">
         ${n.done?'<svg width="10" height="10" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3" stroke="white" stroke-width="2" fill="none"/></svg>':''}
       </button>
       <p class="flex-1 text-sm font-medium" style="color:var(--t);text-decoration:${n.done?'line-through':'none'};opacity:${n.done?.6:1}">${n.text}</p>
-      <button onclick="deleteNote(${i})" class="p-1 rounded-lg" style="color:var(--t3)"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+      <button onclick="deleteNote('${n.id}')" class="p-1 rounded-lg" style="color:var(--t3)"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
     </div>`).join('');
   lucide.createIcons();
 }
-function toggleNote(i){ CFG.notes[i].done=!CFG.notes[i].done; saveCfg(); renderNotesList(); }
-function deleteNote(i){ CFG.notes.splice(i,1); saveCfg(); renderNotesList(); }
+async function toggleNote(id){
+  const n=CFG.notes.find(x=>x.id===id); if(!n) return;
+  await DBS.updateNote(id,{done:!n.done});
+  renderNotesList();
+}
+async function deleteNote(id){
+  await DBS.deleteNote(id);
+  renderNotesList();
+}
 
 // 11. RECURRING TRANSACTIONS
 function openRecurring(){
@@ -2593,9 +3064,10 @@ function markReviewed(id){
 }
 
 // 32. RENAME WALLET (quick)
-function quickRenameWallet(i){
-  const name=prompt('Nuovo nome conto:', CFG.wallets[i]);
-  if(name&&name.trim()){ CFG.wallets[i]=name.trim(); saveCfg(); renderWalletSettings(); populateWalletSel(); renderAll(); }
+async function quickRenameWallet(i){
+  const acc=CFG._accounts?.[i]; if(!acc) return;
+  const name=prompt('Nuovo nome conto:', acc.name);
+  if(name&&name.trim()) await renameWallet(acc.id,name.trim(),acc.name);
 }
 
 // 33. CATEGORY TOTAL (any period)
@@ -2873,4 +3345,3 @@ init();
 </script>
 </body>
 </html>
-
