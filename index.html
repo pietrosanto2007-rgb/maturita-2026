@@ -812,32 +812,279 @@ if(!OFFLINE){
    description, date, recurring, created_at, account
    (account_to e tags salvati in localStorage)
 ============================================================ */
-function toDbPayload(t){
-  // only columns that exist in Supabase table
+/* ── UUID helper ── */
+function genUUID(){
+  try{ return crypto.randomUUID(); }catch(e){
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});
+  }
+}
+
+/* ── DB payload: one row for normal tx, called per-row for giro ── */
+function toDbPayload(t, overrideType, overrideDesc){
   return {
-    type:        t.type==='transfer'?'expense':t.type, // transfer handled locally
+    type:        overrideType || (t.type==='transfer'?'expense':t.type),
     amount:      parseFloat(t.amount)||0,
     date:        t.date,
     category_id: t.category_id||'other',
-    description: t.description||'',
+    description: overrideDesc!=null ? overrideDesc : (t.description||''),
     account:     t.account||'Principale',
     recurring:   false,
   };
 }
+
+/* ── Reconstruct transfers from [GIRO:uuid] pairs ── */
+function processDbRows(rows){
+  const giroMap={};
+  const normal=[];
+  rows.forEach(row=>{
+    const m=(row.description||'').match(/^\[GIRO:([^\]]+)\](.*)/);
+    if(m){
+      const ref=m[1]; const desc=m[2].trim();
+      if(!giroMap[ref]) giroMap[ref]={};
+      if(row.type==='expense') giroMap[ref].out={...row,description:desc};
+      else                     giroMap[ref].in={...row,description:desc};
+    } else normal.push(row);
+  });
+  const result=normal.map(r=>{
+    const local=(S._localMeta||{})[r.id]||{};
+    return {...r, account_to:null, tags:local.tags||'[]'};
+  });
+  Object.entries(giroMap).forEach(([ref,{out,inn}])=>{
+    if(out&&inn){
+      result.push({
+        id:out.id, _partner_id:inn.id,
+        type:'transfer',
+        amount:out.amount,
+        date:out.date,
+        category_id:out.category_id||'other',
+        description:out.description||`Giro ${out.account}→${inn.account}`,
+        account:out.account,
+        account_to:inn.account,
+        tags:'[]',
+        _transfer_ref:ref,
+      });
+    } else {
+      // orphan row — treat as normal
+      const r=out||inn; if(r) result.push({...r,account_to:null,tags:'[]'});
+    }
+  });
+  return result;
+}
+
 function fromDbRow(row){
-  // enrich server row with any extra local data
-  const local = (S._localMeta||{})[row.id] || {};
+  const local=(S._localMeta||{})[row.id]||{};
   return {
-    id:          row.id,
-    type:        row.type||'expense',
-    amount:      row.amount,
-    date:        row.date,
-    category_id: row.category_id||'other',
-    description: row.description||'',
-    account:     row.account||'Principale',
-    account_to:  local.account_to||null,
-    tags:        local.tags||'[]',
+    id:row.id, type:row.type||'expense', amount:row.amount,
+    date:row.date, category_id:row.category_id||'other',
+    description:row.description||'', account:row.account||'Principale',
+    account_to:local.account_to||null, tags:local.tags||'[]',
   };
+}
+
+function saveTxLocal(payload){
+  if(S.editId){
+    const i=S.txs.findIndex(x=>x.id===S.editId);
+    if(i>=0) S.txs[i]=Object.assign({},S.txs[i],payload,{id:S.editId});
+  } else {
+    payload.id='local_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+    S.txs.push(payload);
+  }
+  saveTxs();
+}
+
+async function saveTx(e){
+  e.preventDefault(); haptic();
+  const isTransfer=(S.fType==='transfer');
+  const accFrom=document.getElementById('txAccFrom').value;
+  const accTo  =document.getElementById('txAccTo').value;
+  if(isTransfer&&accFrom===accTo){toast('Scegli due conti diversi','error');return;}
+  const amt=parseFloat(document.getElementById('txAmt').value);
+  if(isNaN(amt)||amt<=0){toast('Inserisci un importo valido','error');return;}
+
+  const tags=isTransfer?'[]':JSON.stringify(Array.from(document.querySelectorAll('.tbtn.on')).map(b=>b.dataset.tag));
+  const payload={
+    type:S.fType, amount:amt,
+    date:document.getElementById('txDate').value,
+    category_id:isTransfer?'other':(document.getElementById('txCat').value||'other'),
+    description:document.getElementById('txDesc').value.trim()||(isTransfer?`Giro ${accFrom}→${accTo}`:''),
+    account:isTransfer?accFrom:(document.getElementById('txAcc').value||(CFG._accounts?.[0]?.name||'Principale')),
+    account_to:isTransfer?accTo:null, tags,
+  };
+
+  if(OFFLINE||!db){
+    saveTxLocal(payload);
+    toast(S.editId?'Aggiornato ✓':(isTransfer?`Giro ${fmt(amt)} ✓`:'Salvato ✓'),'success');
+    closeAll(); renderAll(); if(!S.editId) checkAch();
+    return;
+  }
+
+  try{
+    if(isTransfer){
+      // — TWO rows in DB with [GIRO:uuid] prefix —
+      const ref=genUUID();
+      const desc=payload.description;
+      const rowOut=toDbPayload(payload,'expense',`[GIRO:${ref}] ${desc}`);
+      const rowIn ={...toDbPayload(payload,'income', `[GIRO:${ref}] ${desc}`), account:accTo};
+
+      if(S.editId){
+        // find partner and delete both first
+        const existing=S.txs.find(x=>x.id===S.editId);
+        const oldRef=existing?._transfer_ref;
+        if(oldRef){
+          await db.from('transactions').delete().like('description',`[GIRO:${oldRef}]%`);
+        } else if(existing?._partner_id){
+          await Promise.all([
+            db.from('transactions').delete().eq('id',S.editId),
+            db.from('transactions').delete().eq('id',existing._partner_id),
+          ]);
+        } else {
+          await db.from('transactions').delete().eq('id',S.editId);
+        }
+      }
+
+      const [r1,r2]=await Promise.all([
+        db.from('transactions').insert([rowOut]).select(),
+        db.from('transactions').insert([rowIn]).select(),
+      ]);
+      if(r1.error) throw r1.error;
+      if(r2.error) throw r2.error;
+
+      const merged={
+        id:r1.data[0].id, _partner_id:r2.data[0].id,
+        type:'transfer', amount:amt, date:payload.date,
+        category_id:payload.category_id, description:desc,
+        account:accFrom, account_to:accTo, tags:'[]',
+        _transfer_ref:ref,
+      };
+      if(S.editId){ const i=S.txs.findIndex(x=>x.id===S.editId); if(i>=0) S.txs[i]=merged; else S.txs.push(merged); }
+      else S.txs.push(merged);
+      saveTxs();
+      toast(`Giro ${fmt(amt)} salvato ✓`,'success');
+
+    } else {
+      // — Normal transaction —
+      const dbP=toDbPayload(payload);
+      let result;
+      if(S.editId){ result=await db.from('transactions').update(dbP).eq('id',S.editId).select(); }
+      else         { result=await db.from('transactions').insert([dbP]).select(); }
+      if(result.error) throw result.error;
+      const savedId=S.editId||(result.data&&result.data[0]?.id);
+      if(savedId&&(payload.account_to||tags!=='[]')){
+        if(!S._localMeta) S._localMeta={};
+        S._localMeta[savedId]={account_to:payload.account_to,tags};
+      }
+      if(savedId){
+        const row={id:savedId,...payload};
+        if(S.editId){ const i=S.txs.findIndex(x=>x.id===S.editId); if(i>=0) S.txs[i]=row; }
+        else S.txs.push(row);
+        saveTxs();
+      }
+      toast(S.editId?'Aggiornato ✓':'Salvato ✓','success');
+    }
+
+    closeAll(); renderAll(); if(!S.editId) checkAch();
+  }catch(err){
+    console.error('saveTx error:',err);
+    saveTxLocal(payload);
+    toast(`Salvato localmente (${err.message||'errore sync'})`,'warn');
+    closeAll(); renderAll(); if(!S.editId) checkAch();
+  }
+}
+
+async function deleteTx(id){
+  haptic();
+  const t=S.txs.find(x=>x.id===id); if(!t) return;
+  S.undoQ.push(JSON.parse(JSON.stringify(t)));
+  // remove both halves of a transfer
+  if(t.type==='transfer'&&t._partner_id){
+    S.txs=S.txs.filter(x=>x.id!==id&&x.id!==t._partner_id);
+  } else {
+    S.txs=S.txs.filter(x=>x.id!==id);
+  }
+  saveTxs();
+  const btn=document.getElementById('undoBtn');
+  btn.classList.remove('hidden');
+  clearTimeout(S._undoTimer);
+  S._undoTimer=setTimeout(()=>btn.classList.add('hidden'),8000);
+  toast('Eliminato — <b>Annulla</b> entro 8s','warn');
+  renderAll();
+  if(!OFFLINE&&db){
+    try{
+      if(t.type==='transfer'&&t._transfer_ref){
+        await db.from('transactions').delete().like('description',`[GIRO:${t._transfer_ref}]%`);
+      } else if(t.type==='transfer'&&t._partner_id){
+        await Promise.all([
+          db.from('transactions').delete().eq('id',id),
+          db.from('transactions').delete().eq('id',t._partner_id),
+        ]);
+      } else {
+        await db.from('transactions').delete().eq('id',id);
+      }
+    }catch(e){ console.warn('deleteTx DB',e); }
+  }
+}
+
+async function undoTx(){
+  const t=S.undoQ.pop(); if(!t) return;
+  haptic(); S.txs.push(t); saveTxs();
+  document.getElementById('undoBtn').classList.add('hidden');
+  toast('Azione annullata ✓','success');
+  renderAll();
+  if(!OFFLINE&&db){
+    try{
+      if(t.type==='transfer'){
+        const ref=t._transfer_ref||genUUID();
+        const desc=t.description||'';
+        await Promise.all([
+          db.from('transactions').insert([toDbPayload(t,'expense',`[GIRO:${ref}] ${desc}`)]),
+          db.from('transactions').insert([{...toDbPayload(t,'income',`[GIRO:${ref}] ${desc}`),account:t.account_to}]),
+        ]);
+      } else {
+        await db.from('transactions').insert([toDbPayload(t)]);
+      }
+    }catch(e){ console.warn('undoTx DB',e); }
+  }
+}
+
+async function dupTx(id){
+  haptic();
+  const t=S.txs.find(x=>x.id===id); if(!t) return;
+  const nt={...t}; delete nt.id; delete nt._partner_id; delete nt._transfer_ref;
+  nt.date=new Date().toISOString().split('T')[0];
+  nt.id='local_'+Date.now()+'_dup';
+  S.txs.push(nt); saveTxs();
+  toast('Duplicato ✓','success'); renderAll();
+  if(!OFFLINE&&db){
+    try{
+      if(nt.type==='transfer'){
+        const ref=genUUID(); const desc=nt.description||'';
+        await Promise.all([
+          db.from('transactions').insert([toDbPayload(nt,'expense',`[GIRO:${ref}] ${desc}`)]),
+          db.from('transactions').insert([{...toDbPayload(nt,'income',`[GIRO:${ref}] ${desc}`),account:nt.account_to}]),
+        ]);
+      } else {
+        await db.from('transactions').insert([toDbPayload(nt)]);
+      }
+    }catch(e){}
+  }
+}
+
+async function loadData(force=false){
+  if(OFFLINE||!db){ renderAll(); return; }
+  updateSyncStatus('loading');
+  try{
+    const {data,error}=await db.from('transactions').select('id,type,amount,category_id,description,date,account,recurring,created_at').order('date',{ascending:false});
+    if(error) throw error;
+    S.txs=processDbRows(data||[]);
+    saveTxs();
+    renderAll();
+    updateSyncStatus('ok');
+  }catch(err){
+    console.error('loadData error:',err);
+    if(!S.txs.length) S.txs=loadTxs();
+    renderAll(); updateSyncStatus('error');
+    toast(`Errore sync: ${err.message||err.code||'controlla URL/chiave'}`,'error');
+  }
 }
 
 /* ============================================================
@@ -1387,148 +1634,6 @@ function cycleAccColor(){
 }
 
 /* ============================================================
-   SAVE TX — FIXED: OFFLINE CHECK FIRST
-============================================================ */
-function saveTxLocal(payload){
-  if(S.editId){
-    const i = S.txs.findIndex(x=>x.id===S.editId);
-    if(i>=0) S.txs[i] = Object.assign({}, S.txs[i], payload, {id: S.editId});
-  } else {
-    payload.id = 'local_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
-    S.txs.push(payload);
-  }
-  saveTxs();
-}
-
-async function saveTx(e){
-  e.preventDefault();
-  haptic();
-  const isTransfer = (S.fType==='transfer');
-  const accFrom = document.getElementById('txAccFrom').value;
-  const accTo   = document.getElementById('txAccTo').value;
-  if(isTransfer && accFrom===accTo){
-    toast('Scegli due conti diversi per il trasferimento','error'); return;
-  }
-  const amt = parseFloat(document.getElementById('txAmt').value);
-  if(isNaN(amt)||amt<=0){ toast('Inserisci un importo valido','error'); return; }
-
-  const tags = isTransfer ? '[]' : JSON.stringify(
-    Array.from(document.querySelectorAll('.tbtn.on')).map(b=>b.dataset.tag)
-  );
-  const payload = {
-    type:        S.fType,
-    amount:      amt,
-    date:        document.getElementById('txDate').value,
-    category_id: isTransfer ? 'other' : (document.getElementById('txCat').value||'other'),
-    description: document.getElementById('txDesc').value.trim() || (isTransfer?`Trasferimento ${accFrom} → ${accTo}`:''),
-    account:     isTransfer ? accFrom : (document.getElementById('txAcc').value||CFG.wallets[0]),
-    account_to:  isTransfer ? accTo : null,
-    tags,
-  };
-
-  if(OFFLINE || !db){
-    saveTxLocal(payload);
-    toast(S.editId?'Aggiornato ✓':(isTransfer?`Trasferito ${fmt(amt)} ✓`:'Salvato ✓'),'success');
-    closeAll(); renderAll(); if(!S.editId) checkAch();
-    return;
-  }
-
-  // Supabase: use only columns that exist in the table
-  const dbPayload = toDbPayload(payload);
-  try{
-    let result;
-    if(S.editId){
-      result = await db.from('transactions').update(dbPayload).eq('id', S.editId).select();
-    } else {
-      result = await db.from('transactions').insert([dbPayload]).select();
-    }
-    if(result.error) throw result.error;
-
-    // save extra fields (account_to, tags) locally
-    const savedId = S.editId || (result.data&&result.data[0]?.id);
-    if(savedId && (payload.account_to||tags!=='[]')){
-      if(!S._localMeta) S._localMeta={};
-      S._localMeta[savedId]={ account_to:payload.account_to, tags };
-      saveTxs();
-    }
-
-    toast(S.editId?'Aggiornato ✓':(isTransfer?`Trasferito ${fmt(amt)} ✓`:'Salvato ✓'),'success');
-    closeAll(); await loadData(true); if(!S.editId) checkAch();
-  } catch(err){
-    console.error('Supabase saveTx error:', err);
-    // fallback to local
-    saveTxLocal(payload);
-    toast(`Salvato localmente (errore sync: ${err.message||err.code||'?'})`, 'warn');
-    closeAll(); renderAll(); if(!S.editId) checkAch();
-  }
-}
-
-async function deleteTx(id){
-  haptic();
-  const t = S.txs.find(x=>x.id===id);
-  if(!t) return;
-  S.undoQ.push(JSON.parse(JSON.stringify(t)));
-  S.txs = S.txs.filter(x=>x.id!==id);
-  saveTxs();
-  const btn = document.getElementById('undoBtn');
-  btn.classList.remove('hidden');
-  clearTimeout(S._undoTimer);
-  S._undoTimer = setTimeout(()=>btn.classList.add('hidden'), 8000);
-  toast('Eliminato — <b>Annulla</b> entro 8s','warn');
-  renderAll();
-  if(!OFFLINE && db){ try{ await db.from('transactions').delete().eq('id',id); }catch(e){} }
-}
-
-async function undoTx(){
-  const t = S.undoQ.pop();
-  if(!t) return;
-  haptic();
-  S.txs.push(t);
-  saveTxs();
-  document.getElementById('undoBtn').classList.add('hidden');
-  toast('Azione annullata ✓','success');
-  renderAll();
-  if(!OFFLINE && db){ try{ await db.from('transactions').insert([t]); }catch(e){} }
-}
-
-async function dupTx(id){
-  haptic();
-  const t = S.txs.find(x=>x.id===id);
-  if(!t) return;
-  const nt = Object.assign({}, t);
-  delete nt.id;
-  nt.date = new Date().toISOString().split('T')[0];
-  nt.id = 'local_'+Date.now()+'_dup';
-  S.txs.push(nt);
-  saveTxs();
-  toast('Duplicato ✓','success');
-  renderAll();
-  if(!OFFLINE && db){ try{ await db.from('transactions').insert([nt]); }catch(e){} }
-}
-
-async function loadData(force=false){
-  if(OFFLINE||!db){ renderAll(); return; }
-  updateSyncStatus('loading');
-  try{
-    const {data, error} = await db
-      .from('transactions')
-      .select('id, type, amount, category_id, description, date, account, recurring, created_at')
-      .order('date', {ascending:false});
-    if(error) throw error;
-    S.txs = (data||[]).map(fromDbRow);
-    saveTxs();
-    renderAll();
-    updateSyncStatus('ok');
-  }catch(err){
-    console.error('loadData error:', err);
-    if(!S.txs.length) S.txs = loadTxs();
-    renderAll();
-    updateSyncStatus('error');
-    toast(`Errore sync: ${err.message||err.code||'controlla URL/chiave Supabase'}`, 'error');
-  }
-}
-
-/* ============================================================
    MODAL OPEN/CLOSE
 ============================================================ */
 function openModal(id){
@@ -1645,21 +1750,23 @@ function updateDash(){
   const month = S.viewDate.getMonth();
   const dim   = new Date(year,month+1,0).getDate();
 
-  // wallet balances
-  const wB = {};
-  CFG.wallets.forEach(w=>wB[w]=0);
-  let totalNet=0;
+  // wallet balances — start from initialBalance for each account
+  const accounts=CFG._accounts?.length?CFG._accounts:(CFG.wallets||[]).map(w=>({name:w,initialBalance:0}));
+  const wB={};
+  accounts.forEach(a=>{ wB[a.name]=a.initialBalance||0; });
 
   S.txs.forEach(t=>{
-    const a=+t.amount, w=t.account||CFG.wallets[0];
+    const a=+t.amount, w=t.account||(accounts[0]?.name||'Principale');
     if(t.type==='transfer'){
       if(wB[w]!==undefined) wB[w]-=a;
-      if(t.account_to && wB[t.account_to]!==undefined) wB[t.account_to]+=a;
+      if(t.account_to&&wB[t.account_to]!==undefined) wB[t.account_to]+=a;
     } else {
-      if(wB[w]!==undefined) wB[w]+= t.type==='expense' ? -a : a;
-      totalNet += t.type==='expense' ? -a : a;
+      if(wB[w]!==undefined) wB[w]+= t.type==='expense'?-a:a;
     }
   });
+
+  // Patrimonio netto = somma di tutti i saldi dei conti
+  const totalNet=Object.values(wB).reduce((s,v)=>s+v,0);
 
   // month transactions
   const mTxs = S.txs.filter(t=>{
@@ -2750,10 +2857,15 @@ function getTopExpenses(n=5){
 function getNetWorthHistory(){
   const months=[];
   const now=new Date();
+  // sum of all account initial balances
+  const initSum=(CFG._accounts||[]).reduce((s,a)=>s+(a.initialBalance||0),0);
   for(let i=11;i>=0;i--){
     const d=new Date(now.getFullYear(),now.getMonth()-i,1);
-    const upToDate=S.txs.filter(t=>new Date(t.date+'T12:00')<=new Date(d.getFullYear(),d.getMonth()+1,0)&&t.type!=='transfer');
-    const net=upToDate.reduce((s,t)=>s+(t.type==='income'?+t.amount:-+t.amount),0);
+    const endOfMonth=new Date(d.getFullYear(),d.getMonth()+1,0);
+    const upToDate=S.txs.filter(t=>new Date(t.date+'T12:00')<=endOfMonth);
+    let net=initSum;
+    // accumulate all non-transfer transactions
+    upToDate.filter(t=>t.type!=='transfer').forEach(t=>{ net+=t.type==='income'?+t.amount:-+t.amount; });
     months.push({label:d.toLocaleDateString('it-IT',{month:'short',year:'2-digit'}),net});
   }
   return months;
@@ -3337,6 +3449,495 @@ function refreshSbStatus(){
     dot.style.background='var(--ok)'; txt.textContent=`Connesso · ${SB_URL.replace('https://','').split('.')[0]}`;
   }
 }
+
+
+/* ============================================================
+   ████████╗ 5 FUNZIONI INNOVATIVE ████████████████████████
+============================================================ */
+
+/* ── 1. CASH FLOW PREDICTOR ─────────────────────────────────
+   Analizza le ultime N transazioni ricorrenti (stesso importo +
+   descrizione apparse ≥2 volte) e calcola il saldo proiettato
+   nei prossimi 30 giorni.
+────────────────────────────────────────────────────────── */
+function getProjectedCashFlow(){
+  const today=new Date();
+  const cutoff=new Date(today); cutoff.setDate(cutoff.getDate()-60);
+  const recent=S.txs.filter(t=>new Date(t.date+'T12:00')>=cutoff&&t.type!=='transfer');
+
+  // Trova pattern ricorrenti: stessa (descrizione, amount, type)
+  const patterns={};
+  recent.forEach(t=>{
+    const k=`${t.description||''}|${t.amount}|${t.type}`;
+    if(!patterns[k]) patterns[k]={...t,count:0,dates:[]};
+    patterns[k].count++;
+    patterns[k].dates.push(t.date);
+  });
+
+  const recurring=Object.values(patterns).filter(p=>p.count>=2);
+
+  // Calcola saldo attuale (patrimonio netto)
+  const accounts=CFG._accounts?.length?CFG._accounts:(CFG.wallets||[]).map(w=>({name:w,initialBalance:0}));
+  let currentBalance=accounts.reduce((s,a)=>s+(a.initialBalance||0),0);
+  S.txs.filter(t=>t.type!=='transfer').forEach(t=>{ currentBalance+=t.type==='income'?+t.amount:-+t.amount; });
+
+  // Proietta 30 giorni basandosi sulla media mensile per tipo
+  const last30=S.txs.filter(t=>{const d=new Date(t.date+'T12:00');return d>=cutoff&&d<=today&&t.type!=='transfer';});
+  const avgOut30=last30.filter(t=>t.type==='expense').reduce((s,t)=>s+ +t.amount,0)/2; // media mensile
+  const avgIn30 =last30.filter(t=>t.type==='income').reduce((s,t)=>s+ +t.amount,0)/2;
+
+  const dailyNet=(avgIn30-avgOut30)/30;
+  const days30=[];
+  for(let d=1;d<=30;d++){
+    const date=new Date(today); date.setDate(date.getDate()+d);
+    // aggiungi ricorrenti attesi in quel giorno
+    let dayExtra=0;
+    recurring.forEach(p=>{
+      const lastDate=new Date(Math.max(...p.dates.map(dd=>new Date(dd+'T12:00'))));
+      const daysSinceLast=Math.round((date-lastDate)/(86400000));
+      // se la media inter-occorrenza corrisponde a questo giorno
+      const avgInterval=60/p.count;
+      if(daysSinceLast>0 && Math.abs(daysSinceLast-avgInterval)<2){
+        dayExtra+=p.type==='income'?+p.amount:-+p.amount;
+      }
+    });
+    days30.push({day:d,balance:currentBalance+dailyNet*d+dayExtra,date:date.toLocaleDateString('it-IT',{day:'numeric',month:'short'})});
+  }
+  return {currentBalance,dailyNet,days30,avgOut30,avgIn30};
+}
+
+function openCashFlowModal(){
+  haptic();
+  const cf=getProjectedCashFlow();
+  const el=document.getElementById('cfModal');
+  if(!el){ toast('Modal non disponibile','warn'); return; }
+  const min=Math.min(...cf.days30.map(d=>d.balance));
+  const max=Math.max(...cf.days30.map(d=>d.balance));
+  const range=max-min||1;
+  const H=80;
+  const points=cf.days30.map((d,i)=>`${i*(260/29)},${H-((d.balance-min)/range)*H}`).join(' ');
+  const color=cf.days30[29].balance>cf.currentBalance?'var(--ok)':'var(--bd)';
+  const minDay=cf.days30.find(d=>d.balance===min);
+  document.getElementById('cfContent').innerHTML=`
+    <div class="space-y-4">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="rounded-2xl p-3 text-center" style="background:var(--bg2)">
+          <p class="text-[9px] font-bold uppercase tracking-wider mb-1" style="color:var(--t2)">Saldo Attuale</p>
+          <p class="text-lg font-black" style="color:var(--t)">${fmt(cf.currentBalance)}</p>
+        </div>
+        <div class="rounded-2xl p-3 text-center" style="background:var(--bg2)">
+          <p class="text-[9px] font-bold uppercase tracking-wider mb-1" style="color:var(--t2)">Fra 30 giorni</p>
+          <p class="text-lg font-black" style="color:${color}">${fmt(cf.days30[29]?.balance||0)}</p>
+        </div>
+      </div>
+      <div class="rounded-2xl p-3" style="background:var(--bg2)">
+        <p class="text-[9px] font-bold uppercase tracking-wider mb-2" style="color:var(--t2)">Proiezione 30 giorni</p>
+        <svg viewBox="0 -5 260 ${H+10}" style="width:100%;height:${H+20}px">
+          <polyline points="${points}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="0" y1="${H}" x2="260" y2="${H}" stroke="var(--bo)" stroke-width="1"/>
+          <text x="0" y="${H+9}" font-size="7" fill="var(--t2)">Oggi</text>
+          <text x="230" y="${H+9}" font-size="7" fill="var(--t2)">+30g</text>
+        </svg>
+      </div>
+      ${min<cf.currentBalance*0.2?`<div class="rounded-2xl p-3 flex gap-2 items-start" style="background:rgba(255,59,92,.1)">
+        <span style="font-size:1.2rem">⚠️</span>
+        <div><p class="text-xs font-bold" style="color:var(--bd)">Attenzione!</p>
+        <p class="text-[11px]" style="color:var(--t2)">Saldo minimo previsto: <b>${fmt(min)}</b> il ${minDay?.date}</p></div>
+      </div>`:''}
+      <div class="grid grid-cols-2 gap-2 text-center">
+        <div class="rounded-xl p-2" style="background:var(--bg2)"><p class="text-[9px]" style="color:var(--t2)">Media entrate/mese</p><p class="text-sm font-bold" style="color:var(--ok)">${fmt(cf.avgIn30)}</p></div>
+        <div class="rounded-xl p-2" style="background:var(--bg2)"><p class="text-[9px]" style="color:var(--t2)">Media uscite/mese</p><p class="text-sm font-bold" style="color:var(--bd)">${fmt(cf.avgOut30)}</p></div>
+      </div>
+    </div>`;
+  openModal('cfModal');
+  lucide.createIcons();
+}
+
+/* ── 2. TRANSACTION RECEIPT SCANNER ─────────────────────────
+   Analizza testo incollato (scontrino, estratto conto) ed estrae
+   automaticamente le transazioni da importare.
+────────────────────────────────────────────────────────── */
+function openReceiptScanner(){
+  haptic();
+  document.getElementById('receiptTxt').value='';
+  document.getElementById('receiptResults').innerHTML='';
+  openModal('receiptModal');
+}
+
+function parseReceipt(){
+  const raw=document.getElementById('receiptTxt')?.value||'';
+  if(!raw.trim()){toast('Incolla il testo dello scontrino','warn');return;}
+  const lines=raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  const found=[];
+  const amtReg=/([€$£]?\s*[\d]{1,6}[,.][\d]{2})/g;
+  const dateReg=/(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/;
+  const today=new Date().toISOString().split('T')[0];
+
+  lines.forEach(line=>{
+    const amounts=[...line.matchAll(amtReg)].map(m=>parseFloat(m[1].replace(/[€$£\s]/g,'').replace(',','.'))).filter(n=>n>0.01&&n<99999);
+    if(!amounts.length) return;
+    const amount=Math.max(...amounts);
+    const dateM=line.match(dateReg);
+    let date=today;
+    if(dateM){
+      const parts=dateM[1].split(/[\/\-\.]/);
+      if(parts.length===3){
+        const y=parts[2].length===2?'20'+parts[2]:parts[2];
+        date=`${y}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+      }
+    }
+    const desc=line.replace(amtReg,'').replace(dateReg,'').replace(/[€$£\s\-*|]+/g,' ').trim().slice(0,60)||'Scontrino';
+    const cat=autoDetectCat(desc);
+    found.push({desc,amount,date,cat,selected:true});
+  });
+
+  S._receiptItems=found;
+  const el=document.getElementById('receiptResults');
+  if(!found.length){el.innerHTML='<p class="text-sm py-3 text-center" style="color:var(--t2)">Nessun importo trovato — prova a riformattare il testo</p>';return;}
+  el.innerHTML=`<p class="text-[10px] font-bold uppercase mb-2" style="color:var(--t2)">${found.length} voci rilevate — deseleziona quelle da escludere</p>`+
+  found.map((item,i)=>`
+    <div class="flex items-center gap-2 py-2 border-b last:border-0" style="border-color:var(--bo)">
+      <input type="checkbox" checked onchange="S._receiptItems[${i}].selected=this.checked" class="w-4 h-4 flex-shrink-0" style="accent-color:var(--br)">
+      <div class="flex-1 min-w-0">
+        <p class="text-xs font-bold truncate">${item.desc}</p>
+        <p class="text-[9px]" style="color:var(--t2)">${item.date} · ${CATS[item.cat]?.l||'Altro'}</p>
+      </div>
+      <p class="text-sm font-black flex-shrink-0" style="color:var(--bd)">${fmt(item.amount)}</p>
+    </div>`).join('');
+}
+
+function autoDetectCat(desc){
+  const d=desc.toLowerCase();
+  for(const [k,c] of Object.entries(CATS)){
+    if((c.kw||[]).some(kw=>d.includes(kw))) return k;
+  }
+  return 'other';
+}
+
+async function importReceiptItems(){
+  const items=(S._receiptItems||[]).filter(x=>x.selected);
+  if(!items.length){toast('Seleziona almeno una voce','warn');return;}
+  const account=CFG._accounts?.[0]?.name||'Principale';
+  const today=new Date().toISOString().split('T')[0];
+  for(const item of items){
+    const payload={type:'expense',amount:item.amount,date:item.date||today,category_id:item.cat||'other',description:item.desc,account,account_to:null,tags:'[]'};
+    if(OFFLINE||!db){
+      saveTxLocal(payload);
+    } else {
+      try{
+        const {data}=await db.from('transactions').insert([toDbPayload(payload)]).select();
+        if(data?.[0]) payload.id=data[0].id;
+        if(!payload.id) payload.id='local_'+Date.now()+'_r'+Math.random().toString(36).slice(2,5);
+        S.txs.push(payload);
+      }catch(e){ saveTxLocal(payload); }
+    }
+  }
+  saveTxs(); closeAll(); renderAll(); checkAch();
+  toast(`✅ Importate ${items.length} voci dallo scontrino`,'success');
+}
+
+/* ── 3. SPENDING MOOD TRACKER ────────────────────────────────
+   Associa un "mood" emoji a ogni transazione (opzionale) e mostra
+   la correlazione spesa-umore nel tempo.
+────────────────────────────────────────────────────────── */
+const MOODS=['😊','😐','😟','😤','🎉','😴','💪'];
+function openMoodTracker(){
+  haptic();
+  const el=document.getElementById('moodContent');
+  if(!el){toast('Funzione non disponibile','warn');return;}
+  // Raggruppa spese per mood
+  const moodStats={};
+  MOODS.forEach(m=>{moodStats[m]={count:0,total:0};});
+  S.txs.filter(t=>t.type==='expense').forEach(t=>{
+    try{
+      const tags=typeof t.tags==='string'?JSON.parse(t.tags):t.tags||[];
+      const mood=tags.find(tag=>MOODS.includes(tag));
+      if(mood){moodStats[mood].count++; moodStats[mood].total+= +t.amount;}
+    }catch(e){}
+  });
+  const totTagged=Object.values(moodStats).reduce((s,v)=>s+v.count,0);
+  el.innerHTML=`
+    <p class="text-xs mb-3" style="color:var(--t2)">Aggiungi tag emoji nelle transazioni per tracciare il tuo umore di spesa.</p>
+    <div class="grid grid-cols-4 gap-2 mb-4">
+      ${MOODS.map(m=>`<div class="rounded-2xl p-3 text-center" style="background:var(--bg2)">
+        <p class="text-2xl">${m}</p>
+        <p class="text-[10px] font-bold mt-1" style="color:var(--t)">${moodStats[m].count}×</p>
+        <p class="text-[9px]" style="color:var(--t2)">${moodStats[m].total>0?fmt(moodStats[m].total):'-'}</p>
+      </div>`).join('')}
+    </div>
+    ${totTagged?`<div class="rounded-2xl p-3" style="background:var(--bg2)">
+      <p class="text-[10px] font-bold mb-2" style="color:var(--t2)">Mood più costoso</p>
+      ${Object.entries(moodStats).filter(([,v])=>v.count>0).sort((a,b)=>b[1].total-a[1].total).slice(0,3).map(([m,v])=>`
+        <div class="flex items-center gap-3 py-1.5">
+          <span class="text-xl">${m}</span>
+          <div class="flex-1 h-1.5 rounded-full overflow-hidden" style="background:var(--bo)">
+            <div class="h-full rounded-full" style="background:var(--br);width:${Math.round(v.total/Object.values(moodStats).reduce((s,x)=>s+x.total,1)*100)}%"></div>
+          </div>
+          <span class="text-xs font-bold">${fmt(v.total)}</span>
+        </div>`).join('')}
+    </div>`:`<p class="text-center text-sm py-4" style="color:var(--t2)">Inizia ad aggiungere emoji 😊 nelle note delle transazioni!</p>`}`;
+  openModal('moodModal');
+  lucide.createIcons();
+}
+
+/* ── 4. SMART SAVINGS CHALLENGE ─────────────────────────────
+   Propone una sfida di risparmio personalizzata basata sulle abitudini
+   di spesa: "52 settimane", "risparmia il resto", "no-spend day".
+────────────────────────────────────────────────────────── */
+function openSavingsChallenge(){
+  haptic();
+  if(!CFG._challenges) CFG._challenges={week52:0,roundup:0,noSpendStreak:0,noSpendGoal:7,lastNoSpendCheck:null};
+  const ch=CFG._challenges;
+
+  // Calcola no-spend streak (giorni senza spese)
+  const today=new Date().toISOString().split('T')[0];
+  let streak=0; let d=new Date();
+  for(let i=0;i<60;i++){
+    const k=d.toISOString().split('T')[0];
+    const hasSpend=S.txs.some(t=>t.date===k&&t.type==='expense');
+    if(!hasSpend) streak++; else break;
+    d.setDate(d.getDate()-1);
+  }
+
+  // Calcola arrotondamento (risparmia il resto di ogni spesa al €1 prossimo)
+  const roundupTotal=S.txs.filter(t=>t.type==='expense').reduce((s,t)=>{
+    const cents=Math.round((1-((+t.amount)%1))*100)/100;
+    return cents<1?s+cents:s;
+  },0);
+
+  const el=document.getElementById('challengeContent');
+  if(!el){toast('Funzione non disponibile','warn');return;}
+  el.innerHTML=`
+    <div class="space-y-3">
+      <!-- 52 Weeks Challenge -->
+      <div class="rounded-2xl p-4" style="background:var(--bg2)">
+        <div class="flex items-center justify-between mb-2">
+          <div><p class="font-bold text-sm">💸 Sfida 52 Settimane</p><p class="text-[10px]" style="color:var(--t2)">Risparmia €1 la 1ª settimana, €2 la 2ª, ecc.</p></div>
+          <p class="text-lg font-black" style="color:var(--ok)">${fmt(ch.week52)}</p>
+        </div>
+        <div class="h-1.5 rounded-full overflow-hidden mb-2" style="background:var(--bo)">
+          <div class="h-full rounded-full" style="background:var(--ok);width:${Math.min(100,ch.week52/1378*100)}%"></div>
+        </div>
+        <p class="text-[9px] mb-2" style="color:var(--t2)">Obiettivo: ${fmt(1378)} · ${Math.round(ch.week52/1378*100)}% completato</p>
+        <button onclick="addToWeek52Challenge()" class="w-full py-2 rounded-xl text-xs font-bold" style="background:rgba(0,200,150,.1);color:var(--ok)">+ Aggiungi settimana questa settimana</button>
+      </div>
+
+      <!-- Round-up savings -->
+      <div class="rounded-2xl p-4" style="background:var(--bg2)">
+        <div class="flex items-center justify-between mb-1">
+          <div><p class="font-bold text-sm">🪙 Arrotondamento</p><p class="text-[10px]" style="color:var(--t2)">Risparmia il resto di ogni spesa</p></div>
+          <p class="text-lg font-black" style="color:var(--br)">${fmt(Math.round(roundupTotal*100)/100)}</p>
+        </div>
+        <p class="text-[10px]" style="color:var(--t2)">Arrotondando ogni spesa al prossimo euro avresti risparmiato questo importo</p>
+      </div>
+
+      <!-- No-Spend Streak -->
+      <div class="rounded-2xl p-4" style="background:var(--bg2)">
+        <div class="flex items-center justify-between mb-2">
+          <div><p class="font-bold text-sm">🔥 No-Spend Streak</p><p class="text-[10px]" style="color:var(--t2)">Giorni consecutivi senza spese</p></div>
+          <p class="text-3xl font-black" style="color:${streak>0?'var(--wn)':'var(--t3)'}">${streak}</p>
+        </div>
+        <div class="flex gap-1 mb-2">${Array.from({length:ch.noSpendGoal||7},(_,i)=>`<div class="flex-1 h-2 rounded-full" style="background:${i<streak?'var(--wn)':'var(--bo)'}"></div>`).join('')}</div>
+        <p class="text-[9px]" style="color:var(--t2)">Obiettivo: ${ch.noSpendGoal||7} giorni · ${streak>=(ch.noSpendGoal||7)?'🎉 Obiettivo raggiunto!':'Ancora '+(Math.max(0,(ch.noSpendGoal||7)-streak))+' giorni'}</p>
+        <div class="flex gap-2 mt-2">
+          <button onclick="changeNoSpendGoal(-1)" class="flex-1 py-1.5 rounded-xl text-xs font-bold" style="background:var(--bo)">−</button>
+          <span class="flex-1 text-center text-xs font-bold py-1.5">Obiettivo: ${ch.noSpendGoal||7}g</span>
+          <button onclick="changeNoSpendGoal(1)" class="flex-1 py-1.5 rounded-xl text-xs font-bold" style="background:var(--bo)">+</button>
+        </div>
+      </div>
+    </div>`;
+  openModal('challengeModal');
+  if(streak>=(ch.noSpendGoal||7)&&streak>0) launchConfetti();
+  lucide.createIcons();
+}
+
+function addToWeek52Challenge(){
+  if(!CFG._challenges) CFG._challenges={week52:0};
+  const week=Math.ceil(((new Date()-new Date(new Date().getFullYear(),0,1))/86400000)/7);
+  CFG._challenges.week52=Math.min(1378,(CFG._challenges.week52||0)+week);
+  saveCfg();
+  openSavingsChallenge();
+  toast(`Settimana ${week} aggiunta! (${fmt(week)} risparmiati)`,'success');
+}
+
+function changeNoSpendGoal(delta){
+  if(!CFG._challenges) CFG._challenges={};
+  CFG._challenges.noSpendGoal=Math.max(1,Math.min(30,(CFG._challenges.noSpendGoal||7)+delta));
+  saveCfg(); openSavingsChallenge();
+}
+
+/* ── 5. SUBSCRIPTIONS OVERLAP DETECTOR ──────────────────────
+   Analizza le transazioni per rilevare automaticamente abbonamenti
+   dimenticati, comparali con quelli in lista, e segnala sovrapposizioni.
+────────────────────────────────────────────────────────── */
+function detectHiddenSubscriptions(){
+  haptic();
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-90);
+  const recent=S.txs.filter(t=>new Date(t.date+'T12:00')>=cutoff&&t.type==='expense');
+
+  // Raggruppa per (description, amount) e conta occorrenze
+  const groups={};
+  recent.forEach(t=>{
+    const k=`${(t.description||'').toLowerCase().slice(0,30)}|${+t.amount}`;
+    if(!groups[k]) groups[k]={desc:t.description||'?',amount:+t.amount,cat:t.category_id,dates:[],account:t.account};
+    groups[k].dates.push(t.date);
+  });
+
+  // Filtra: ≥2 occorrenze in 90 giorni con intervallo ~mensile o ~settimanale
+  const detected=Object.values(groups).filter(g=>{
+    if(g.dates.length<2) return false;
+    const sorted=g.dates.map(d=>new Date(d+'T12:00')).sort((a,b)=>a-b);
+    const intervals=[];
+    for(let i=1;i<sorted.length;i++) intervals.push((sorted[i]-sorted[i-1])/(86400000));
+    const avg=intervals.reduce((s,v)=>s+v,0)/intervals.length;
+    return avg<=35 && avg>=5; // between 5 and 35 days apart = subscription-like
+  }).map(g=>{
+    const sorted=g.dates.map(d=>new Date(d+'T12:00')).sort((a,b)=>b-a);
+    const intervals=[];
+    for(let i=1;i<sorted.length;i++) intervals.push((sorted[i-1]-sorted[i])/(86400000));
+    const avgInterval=intervals.reduce((s,v)=>s+v,0)/intervals.length;
+    const monthly=avgInterval<20?g.amount*(30/avgInterval):g.amount;
+    return {...g,avgInterval:Math.round(avgInterval),monthly:Math.round(monthly*100)/100};
+  }).sort((a,b)=>b.monthly-a.monthly);
+
+  // Controlla quali non sono già in CFG.subscriptions
+  const knownNames=(CFG.subscriptions||[]).map(s=>s.name.toLowerCase());
+  const unknown=detected.filter(g=>!knownNames.some(n=>g.desc.toLowerCase().includes(n.slice(0,5))));
+  const known=detected.filter(g=>knownNames.some(n=>g.desc.toLowerCase().includes(n.slice(0,5))));
+
+  const el=document.getElementById('subDetectContent');
+  if(!el){toast('Funzione non disponibile','warn');return;}
+
+  el.innerHTML=`
+    ${unknown.length?`
+    <p class="text-[10px] font-bold uppercase tracking-wider mb-2" style="color:var(--bd)">⚠️ ${unknown.length} abbonamenti non tracciati</p>
+    ${unknown.map(g=>`
+      <div class="flex items-center gap-3 py-3 border-b" style="border-color:var(--bo)">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:rgba(255,59,92,.1)">
+          <i data-lucide="${CATS[g.cat]?.ic||'refresh-cw'}" class="w-4 h-4" style="color:var(--bd)"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-bold truncate">${g.desc}</p>
+          <p class="text-[9px]" style="color:var(--t2)">Ogni ~${g.avgInterval}g · ${g.dates.length}× in 90 giorni</p>
+        </div>
+        <div class="text-right flex-shrink-0">
+          <p class="text-sm font-black" style="color:var(--bd)">${fmt(g.amount)}</p>
+          <p class="text-[9px]" style="color:var(--t2)">~${fmt(g.monthly)}/mese</p>
+        </div>
+      </div>`).join('')}
+    <p class="text-[10px] mt-2 mb-3" style="color:var(--t2)">Vuoi aggiungerli agli abbonamenti tracciati?</p>
+    <button onclick="addDetectedSubs()" class="w-full py-2.5 rounded-xl text-xs font-bold" style="background:rgba(124,58,237,.1);color:var(--acc)">+ Aggiungi tutti agli Abbonamenti</button>`:'<div class="text-center py-4"><p class="text-2xl mb-2">✅</p><p class="text-sm font-bold" style="color:var(--ok)">Tutti gli abbonamenti rilevati sono già tracciati!</p></div>'}
+    ${known.length?`<p class="text-[10px] font-bold uppercase tracking-wider mt-4 mb-2" style="color:var(--ok)">✅ ${known.length} già tracciati</p>
+    ${known.map(g=>`<div class="flex items-center gap-3 py-2"><div class="w-2 h-2 rounded-full flex-shrink-0" style="background:var(--ok)"></div><p class="text-xs flex-1 truncate">${g.desc}</p><p class="text-xs font-bold" style="color:var(--ok)">${fmt(g.amount)}</p></div>`).join('')}`:''}`;
+
+  S._detectedSubs=unknown;
+  openModal('subDetectModal');
+  lucide.createIcons();
+}
+
+async function addDetectedSubs(){
+  const subs=S._detectedSubs||[];
+  const today=new Date().toISOString().split('T')[0];
+  for(const g of subs){
+    const sub={name:g.desc.slice(0,40),amount:g.amount,frequency:'monthly',nextDate:today,active:true};
+    if(!CFG.subscriptions) CFG.subscriptions=[];
+    // Use DBS if available, else local
+    if(typeof DBS!=='undefined'&&DBS.saveSub){
+      await DBS.saveSub(sub);
+    } else {
+      sub.id='ls'+Date.now()+'_'+Math.random().toString(36).slice(2,4);
+      CFG.subscriptions.push(sub);
+      localStorage.setItem('mpx_subscriptions',JSON.stringify(CFG.subscriptions));
+    }
+  }
+  saveCfg(); closeAll();
+  toast(`${subs.length} abbonamenti aggiunti ✓`,'success');
+}
+
+/* ── Modals HTML per le 5 funzioni (iniettati nel DOM) ───── */
+(function injectModals(){
+  const html=`
+  <!-- Cash Flow Predictor -->
+  <div id="cfModal" class="sh-up fixed bottom-0 left-0 right-0 flex flex-col" style="max-height:88vh;border-top:1px solid var(--bo);z-index:55;background:var(--card);border-radius:1.5rem 1.5rem 0 0;padding-bottom:max(env(safe-area-inset-bottom),16px)">
+    <div class="flex justify-center pt-3 pb-1"><div class="w-10 h-1 rounded-full" style="background:var(--bo)"></div></div>
+    <div class="px-5 py-2 flex justify-between items-center">
+      <h2 class="text-xl font-bold">📈 Cash Flow Predictor</h2>
+      <button onclick="closeAll()" class="p-1.5 rounded-full" style="background:var(--bg2)"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <div id="cfContent" class="flex-1 overflow-y-auto px-5 pb-6 ns"></div>
+  </div>
+
+  <!-- Receipt Scanner -->
+  <div id="receiptModal" class="sh-up fixed bottom-0 left-0 right-0 flex flex-col" style="max-height:92vh;border-top:1px solid var(--bo);z-index:55;background:var(--card);border-radius:1.5rem 1.5rem 0 0;padding-bottom:max(env(safe-area-inset-bottom),16px)">
+    <div class="flex justify-center pt-3 pb-1"><div class="w-10 h-1 rounded-full" style="background:var(--bo)"></div></div>
+    <div class="px-5 py-2 flex justify-between items-center">
+      <h2 class="text-xl font-bold">🧾 Scontrino Scanner</h2>
+      <button onclick="closeAll()" class="p-1.5 rounded-full" style="background:var(--bg2)"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <div class="flex-1 overflow-y-auto px-5 pb-6 ns space-y-3">
+      <p class="text-xs" style="color:var(--t2)">Incolla il testo di uno scontrino o estratto conto — rilevo automaticamente gli importi.</p>
+      <textarea id="receiptTxt" rows="5" class="inp w-full text-xs" placeholder="Es:\nSuperMercato 15/03\nPane              1,90\nLatte             0,89\nTotale:           2,79"></textarea>
+      <button onclick="parseReceipt()" class="gbtn w-full py-3 rounded-xl text-sm font-bold">🔍 Analizza Testo</button>
+      <div id="receiptResults"></div>
+      <button onclick="importReceiptItems()" class="w-full py-3 rounded-xl text-sm font-bold" style="background:rgba(0,200,150,.1);color:var(--ok)">✅ Importa Selezionati</button>
+    </div>
+  </div>
+
+  <!-- Mood Tracker -->
+  <div id="moodModal" class="sh-up fixed bottom-0 left-0 right-0 flex flex-col" style="max-height:85vh;border-top:1px solid var(--bo);z-index:55;background:var(--card);border-radius:1.5rem 1.5rem 0 0;padding-bottom:max(env(safe-area-inset-bottom),16px)">
+    <div class="flex justify-center pt-3 pb-1"><div class="w-10 h-1 rounded-full" style="background:var(--bo)"></div></div>
+    <div class="px-5 py-2 flex justify-between items-center">
+      <h2 class="text-xl font-bold">😊 Spending Mood</h2>
+      <button onclick="closeAll()" class="p-1.5 rounded-full" style="background:var(--bg2)"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <div id="moodContent" class="flex-1 overflow-y-auto px-5 pb-6 ns"></div>
+  </div>
+
+  <!-- Savings Challenge -->
+  <div id="challengeModal" class="sh-up fixed bottom-0 left-0 right-0 flex flex-col" style="max-height:88vh;border-top:1px solid var(--bo);z-index:55;background:var(--card);border-radius:1.5rem 1.5rem 0 0;padding-bottom:max(env(safe-area-inset-bottom),16px)">
+    <div class="flex justify-center pt-3 pb-1"><div class="w-10 h-1 rounded-full" style="background:var(--bo)"></div></div>
+    <div class="px-5 py-2 flex justify-between items-center">
+      <h2 class="text-xl font-bold">🏆 Sfide Risparmio</h2>
+      <button onclick="closeAll()" class="p-1.5 rounded-full" style="background:var(--bg2)"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <div id="challengeContent" class="flex-1 overflow-y-auto px-5 pb-6 ns"></div>
+  </div>
+
+  <!-- Subscription Detector -->
+  <div id="subDetectModal" class="sh-up fixed bottom-0 left-0 right-0 flex flex-col" style="max-height:88vh;border-top:1px solid var(--bo);z-index:55;background:var(--card);border-radius:1.5rem 1.5rem 0 0;padding-bottom:max(env(safe-area-inset-bottom),16px)">
+    <div class="flex justify-center pt-3 pb-1"><div class="w-10 h-1 rounded-full" style="background:var(--bo)"></div></div>
+    <div class="px-5 py-2 flex justify-between items-center">
+      <h2 class="text-xl font-bold">🔍 Sub Detector</h2>
+      <button onclick="closeAll()" class="p-1.5 rounded-full" style="background:var(--bg2)"><i data-lucide="x" class="w-4 h-4"></i></button>
+    </div>
+    <div id="subDetectContent" class="flex-1 overflow-y-auto px-5 pb-6 ns"></div>
+  </div>`;
+
+  document.body.insertAdjacentHTML('beforeend', html);
+})();
+
+/* ── Quick access buttons nella home (inseriamo nella sezione Quick Actions) ── */
+(function injectQuickActions(){
+  // Aggiungi 5 nuovi quick-action buttons nella griglia rapida
+  const existingGrid=document.getElementById('quickActGrid');
+  if(!existingGrid) return;
+  const btns=[
+    {icon:'trending-up', label:'Cash Flow',  color:'var(--ok)',  bg:'rgba(0,200,150,.1)', fn:'openCashFlowModal()'},
+    {icon:'scan-line',   label:'Scontrino',  color:'var(--br)',  bg:'rgba(0,102,255,.1)', fn:'openReceiptScanner()'},
+    {icon:'smile',       label:'Mood',       color:'var(--wn)',  bg:'rgba(255,149,0,.1)', fn:'openMoodTracker()'},
+    {icon:'target',      label:'Sfide',      color:'var(--acc)', bg:'rgba(124,58,237,.1)',fn:'openSavingsChallenge()'},
+    {icon:'search',      label:'Sub Detect', color:'var(--bd)',  bg:'rgba(255,59,92,.1)', fn:'detectHiddenSubscriptions()'},
+  ];
+  btns.forEach(b=>{
+    const btn=document.createElement('button');
+    btn.setAttribute('onclick',b.fn);
+    btn.className='flex flex-col items-center gap-1 p-3 rounded-2xl';
+    btn.style.cssText=`background:${b.bg}`;
+    btn.innerHTML=`<i data-lucide="${b.icon}" class="w-5 h-5" style="color:${b.color}"></i><span class="text-[9px] font-bold" style="color:${b.color}">${b.label}</span>`;
+    existingGrid.appendChild(btn);
+  });
+  lucide.createIcons();
+})();
 
 /* ============================================================
    INIT CALL
