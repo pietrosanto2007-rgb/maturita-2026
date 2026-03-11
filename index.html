@@ -770,16 +770,201 @@ input:checked+.tog-sl::after{transform:translateX(20px)}
     <button onclick="clearSbCredentials()" class="w-full py-2 rounded-xl text-xs font-bold" style="background:var(--bg2);color:var(--t3)">Disconnetti</button>
   </div>
 
+  <!-- STRUMENTI -->
+  <div class="card p-5 space-y-3">
+    <h3 class="text-[10px] font-black uppercase tracking-widest" style="color:var(--br)">Strumenti</h3>
+    <div class="grid grid-cols-2 gap-2">
+      <button onclick="openGoals()" class="py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2" style="background:rgba(0,200,150,.1);color:var(--ok)"><i data-lucide="target" class="w-3.5 h-3.5"></i>Obiettivi</button>
+      <button onclick="openDebts()" class="py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2" style="background:rgba(255,59,92,.1);color:var(--bd)"><i data-lucide="handshake" class="w-3.5 h-3.5"></i>Debiti</button>
+      <button onclick="openSubs()" class="py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2" style="background:rgba(124,58,237,.1);color:var(--acc)"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>Abbonamenti</button>
+      <button onclick="openNetworth()" class="py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2" style="background:rgba(0,102,255,.1);color:var(--br)"><i data-lucide="trending-up" class="w-3.5 h-3.5"></i>Patrimonio</button>
+      <button onclick="openTemplates()" class="py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2" style="background:rgba(0,102,255,.08);color:var(--br)"><i data-lucide="bookmark" class="w-3.5 h-3.5"></i>Template</button>
+      <button onclick="openNotes()" class="py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2" style="background:rgba(255,149,0,.1);color:#FF9500"><i data-lucide="sticky-note" class="w-3.5 h-3.5"></i>Note</button>
+      <button onclick="openRecurring()" class="py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 col-span-2" style="background:var(--bg2);color:var(--t2)"><i data-lucide="repeat" class="w-3.5 h-3.5"></i>Transazioni Ricorrenti</button>
+    </div>
+    <div class="h-px" style="background:var(--bo)"></div>
+    <div class="flex justify-between items-center">
+      <span class="text-sm font-bold">PIN di Sicurezza</span>
+      <label class="tog"><input type="checkbox" id="pinToggle" onchange="togglePinSetting(this.checked)"><span class="tog-sl"></span></label>
+    </div>
+  </div>
+
   <div class="card p-5 space-y-3" style="border-color:rgba(255,59,92,.2)">
     <h3 class="text-[10px] font-black uppercase tracking-widest" style="color:var(--bd)">Danger Zone</h3>
     <button onclick="wipeAll()" class="w-full py-3 rounded-xl font-bold text-sm" style="background:rgba(255,59,92,.1);color:var(--bd)">Cancella Tutti i Dati</button>
   </div>
+
 
   <p class="text-center text-xs pb-4" style="color:var(--t3)">Money Pro X · v2.0 ✨</p>
 </div>
 
 </div><!-- /px-4 -->
 </div><!-- /scroll -->
+
+<!-- ===== MODAL: DEBITI & CREDITI ===== -->
+<div id="debtsM" class="sh-up fixed bottom-0 left-0 right-0 flex flex-col" style="max-height:88vh;border-top:1px solid var(--bo);padding-bottom:max(env(safe-area-inset-bottom),16px)">
+  <div class="flex justify-center pt-3 pb-1"><div class="w-10 h-1 rounded-full" style="background:var(--bo)"></div></div>
+  <div class="px-5 py-2 flex justify-between items-center">
+    <h2 class="text-xl font-bold">💸 Debiti & Crediti</h2>
+    <button onclick="closeAll()" class="p-1.5 rounded-full" style="background:var(--bg2)"><i data-lucide="x" class="w-4 h-4"></i></button>
+  </div>
+  <div class="flex-1 overflow-y-auto px-5 pb-6 ns space-y-4">
+    <div class="rounded-2xl p-4 space-y-3" style="background:var(--bg2)">
+      <p class="text-[10px] font-bold uppercase tracking-wider" style="color:var(--t2)">Aggiungi voce</p>
+      <div class="flex gap-2">
+        <button id="debtTypeBorrow" onclick="setDebtType('borrow')" class="flex-1 py-2 rounded-xl text-xs font-bold" style="background:rgba(255,59,92,.12);color:var(--bd)">💸 Mi devono</button>
+        <button id="debtTypeLend" onclick="setDebtType('lend')" class="flex-1 py-2 rounded-xl text-xs font-bold" style="background:rgba(0,200,150,.12);color:var(--ok)">🤲 Devo io</button>
+      </div>
+      <input type="text" id="debtPerson" class="inp text-sm" placeholder="Nome persona">
+      <input type="number" id="debtAmt" class="inp text-sm" placeholder="Importo €" step="0.01" min="0">
+      <input type="text" id="debtNote" class="inp text-sm" placeholder="Nota opzionale...">
+      <button onclick="addDebt()" class="gbtn w-full py-3 rounded-xl text-sm font-bold">Aggiungi</button>
+    </div>
+    <div id="debtsList" class="space-y-2"></div>
+  </div>
+</div>
+
+<!-- ===== MODAL: ABBONAMENTI ===== -->
+<div id="subsM" class="sh-up fixed bottom-0 left-0 right-0 flex flex-col" style="max-height:88vh;border-top:1px solid var(--bo);padding-bottom:max(env(safe-area-inset-bottom),16px)">
+  <div class="flex justify-center pt-3 pb-1"><div class="w-10 h-1 rounded-full" style="background:var(--bo)"></div></div>
+  <div class="px-5 py-2 flex justify-between items-center">
+    <h2 class="text-xl font-bold">🔄 Abbonamenti</h2>
+    <button onclick="closeAll()" class="p-1.5 rounded-full" style="background:var(--bg2)"><i data-lucide="x" class="w-4 h-4"></i></button>
+  </div>
+  <div class="flex-1 overflow-y-auto px-5 pb-6 ns space-y-4">
+    <div class="rounded-2xl p-4 flex justify-between items-center" style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(0,102,255,.15));border:1px solid rgba(124,58,237,.2)">
+      <div>
+        <p class="text-[9px] font-bold uppercase tracking-wider mb-1" style="color:var(--acc)">Totale mensile</p>
+        <p id="subsTotalMo" class="text-2xl font-black" style="color:var(--acc)">€ 0,00</p>
+      </div>
+      <div class="text-right">
+        <p class="text-[9px] font-bold uppercase tracking-wider mb-1" style="color:var(--t2)">Annuale</p>
+        <p id="subsTotalYr" class="text-lg font-black" style="color:var(--t2)">€ 0,00</p>
+      </div>
+    </div>
+    <div class="rounded-2xl p-4 space-y-3" style="background:var(--bg2)">
+      <p class="text-[10px] font-bold uppercase tracking-wider" style="color:var(--t2)">Nuovo abbonamento</p>
+      <input type="text" id="subName" class="inp text-sm" placeholder="Es. Netflix, Spotify...">
+      <div class="grid grid-cols-2 gap-2">
+        <input type="number" id="subAmt" class="inp text-sm" placeholder="Importo €" step="0.01" min="0">
+        <select id="subFreq" class="inp text-sm">
+          <option value="monthly">Mensile</option>
+          <option value="yearly">Annuale</option>
+          <option value="weekly">Settimanale</option>
+        </select>
+      </div>
+      <input type="date" id="subNextDate" class="inp text-sm">
+      <button onclick="addSubscription()" class="gbtn w-full py-3 rounded-xl text-sm font-bold">Aggiungi</button>
+    </div>
+    <div id="subsList" class="space-y-2"></div>
+  </div>
+</div>
+
+<!-- ===== MODAL: PATRIMONIO NEL TEMPO ===== -->
+<div id="networthM" class="sh-up fixed bottom-0 left-0 right-0 flex flex-col" style="max-height:88vh;border-top:1px solid var(--bo);padding-bottom:max(env(safe-area-inset-bottom),16px)">
+  <div class="flex justify-center pt-3 pb-1"><div class="w-10 h-1 rounded-full" style="background:var(--bo)"></div></div>
+  <div class="px-5 py-2 flex justify-between items-center">
+    <h2 class="text-xl font-bold">📈 Patrimonio nel Tempo</h2>
+    <button onclick="closeAll()" class="p-1.5 rounded-full" style="background:var(--bg2)"><i data-lucide="x" class="w-4 h-4"></i></button>
+  </div>
+  <div class="flex-1 overflow-y-auto px-5 pb-6 ns">
+    <canvas id="networthChart" style="max-height:280px" class="mt-2"></canvas>
+    <div id="networthStats" class="grid grid-cols-3 gap-2 mt-4"></div>
+  </div>
+</div>
+
+<!-- ===== MODAL: OBIETTIVI ===== -->
+<div id="goalsM" class="sh-up fixed bottom-0 left-0 right-0 flex flex-col" style="max-height:88vh;border-top:1px solid var(--bo);padding-bottom:max(env(safe-area-inset-bottom),16px)">
+  <div class="flex justify-center pt-3 pb-1"><div class="w-10 h-1 rounded-full" style="background:var(--bo)"></div></div>
+  <div class="px-5 py-2 flex justify-between items-center">
+    <h2 class="text-xl font-bold">🎯 Obiettivi</h2>
+    <button onclick="closeAll()" class="p-1.5 rounded-full" style="background:var(--bg2)"><i data-lucide="x" class="w-4 h-4"></i></button>
+  </div>
+  <div class="flex-1 overflow-y-auto px-5 pb-6 ns space-y-4">
+    <div class="rounded-2xl p-4 space-y-3" style="background:var(--bg2)">
+      <p class="text-[10px] font-bold uppercase tracking-wider" style="color:var(--t2)">Nuovo obiettivo</p>
+      <input type="text" id="goalNameI" class="inp text-sm" placeholder="Es. Auto, Vacanza, Emergenza...">
+      <div class="grid grid-cols-2 gap-2">
+        <input type="number" id="goalTargetI" class="inp text-sm" placeholder="Target €" step="1" min="0">
+        <input type="number" id="goalCurrentI" class="inp text-sm" placeholder="Già risparmiato €" step="1" min="0">
+      </div>
+      <input type="date" id="goalDeadlineI" class="inp text-sm">
+      <button onclick="addGoal()" class="gbtn w-full py-3 rounded-xl text-sm font-bold">Aggiungi Obiettivo</button>
+    </div>
+    <div id="goalsList" class="space-y-3"></div>
+  </div>
+</div>
+
+<!-- ===== MODAL: TEMPLATE ===== -->
+<div id="tplM" class="sh-up fixed bottom-0 left-0 right-0 flex flex-col" style="max-height:85vh;border-top:1px solid var(--bo);padding-bottom:max(env(safe-area-inset-bottom),16px)">
+  <div class="flex justify-center pt-3 pb-1"><div class="w-10 h-1 rounded-full" style="background:var(--bo)"></div></div>
+  <div class="px-5 py-2 flex justify-between items-center">
+    <h2 class="text-xl font-bold">📋 Template Rapidi</h2>
+    <button onclick="closeAll()" class="p-1.5 rounded-full" style="background:var(--bg2)"><i data-lucide="x" class="w-4 h-4"></i></button>
+  </div>
+  <div class="flex-1 overflow-y-auto px-5 pb-6 ns">
+    <p class="text-xs mb-3" style="color:var(--t2)">Salva transazioni frequenti come template da riutilizzare rapidamente.</p>
+    <div id="tplList" class="space-y-1 divide-y" style="border-color:var(--bo)"></div>
+  </div>
+</div>
+
+<!-- ===== MODAL: NOTE ===== -->
+<div id="notesM" class="sh-up fixed bottom-0 left-0 right-0 flex flex-col" style="max-height:85vh;border-top:1px solid var(--bo);padding-bottom:max(env(safe-area-inset-bottom),16px)">
+  <div class="flex justify-center pt-3 pb-1"><div class="w-10 h-1 rounded-full" style="background:var(--bo)"></div></div>
+  <div class="px-5 py-2 flex justify-between items-center">
+    <h2 class="text-xl font-bold">📝 Note</h2>
+    <button onclick="closeAll()" class="p-1.5 rounded-full" style="background:var(--bg2)"><i data-lucide="x" class="w-4 h-4"></i></button>
+  </div>
+  <div class="flex-1 overflow-y-auto px-5 pb-6 ns space-y-3">
+    <div class="flex gap-2">
+      <input type="text" id="noteInp" class="inp text-sm flex-1" placeholder="Scrivi una nota..." onkeydown="if(event.key==='Enter')addNote()">
+      <button onclick="addNote()" class="gbtn px-4 rounded-xl text-sm font-bold">+</button>
+    </div>
+    <div id="notesList" class="space-y-2"></div>
+  </div>
+</div>
+
+<!-- ===== MODAL: RICORRENTI ===== -->
+<div id="recM" class="sh-up fixed bottom-0 left-0 right-0 flex flex-col" style="max-height:85vh;border-top:1px solid var(--bo);padding-bottom:max(env(safe-area-inset-bottom),16px)">
+  <div class="flex justify-center pt-3 pb-1"><div class="w-10 h-1 rounded-full" style="background:var(--bo)"></div></div>
+  <div class="px-5 py-2 flex justify-between items-center">
+    <h2 class="text-xl font-bold">🔁 Transazioni Ricorrenti</h2>
+    <button onclick="closeAll()" class="p-1.5 rounded-full" style="background:var(--bg2)"><i data-lucide="x" class="w-4 h-4"></i></button>
+  </div>
+  <div class="flex-1 overflow-y-auto px-5 pb-6 ns">
+    <p class="text-xs mb-3" style="color:var(--t2)">Transazioni con il tag "Ricorrente" — aggiunte automaticamente ogni mese.</p>
+    <div id="recList"></div>
+  </div>
+</div>
+
+<!-- ===== PIN SCREEN ===== -->
+<div id="pinScreen" class="hidden fixed inset-0 flex flex-col items-center justify-center z-[999]" style="background:var(--bg)">
+  <div class="w-full max-w-xs px-8 text-center">
+    <div class="text-4xl mb-2">🔒</div>
+    <h2 class="text-xl font-bold mb-1">Money Pro X</h2>
+    <p class="text-sm mb-6" style="color:var(--t2)">Inserisci il PIN per accedere</p>
+    <div class="flex justify-center gap-3 mb-6">
+      <div id="pinD1" class="w-3.5 h-3.5 rounded-full" style="background:var(--bg2);border:2px solid var(--bo)"></div>
+      <div id="pinD2" class="w-3.5 h-3.5 rounded-full" style="background:var(--bg2);border:2px solid var(--bo)"></div>
+      <div id="pinD3" class="w-3.5 h-3.5 rounded-full" style="background:var(--bg2);border:2px solid var(--bo)"></div>
+      <div id="pinD4" class="w-3.5 h-3.5 rounded-full" style="background:var(--bg2);border:2px solid var(--bo)"></div>
+    </div>
+    <div class="grid grid-cols-3 gap-3 mb-3">
+      <button onclick="pinKey('1')" class="py-4 rounded-2xl text-xl font-bold" style="background:var(--card);border:1px solid var(--bo)">1</button>
+      <button onclick="pinKey('2')" class="py-4 rounded-2xl text-xl font-bold" style="background:var(--card);border:1px solid var(--bo)">2</button>
+      <button onclick="pinKey('3')" class="py-4 rounded-2xl text-xl font-bold" style="background:var(--card);border:1px solid var(--bo)">3</button>
+      <button onclick="pinKey('4')" class="py-4 rounded-2xl text-xl font-bold" style="background:var(--card);border:1px solid var(--bo)">4</button>
+      <button onclick="pinKey('5')" class="py-4 rounded-2xl text-xl font-bold" style="background:var(--card);border:1px solid var(--bo)">5</button>
+      <button onclick="pinKey('6')" class="py-4 rounded-2xl text-xl font-bold" style="background:var(--card);border:1px solid var(--bo)">6</button>
+      <button onclick="pinKey('7')" class="py-4 rounded-2xl text-xl font-bold" style="background:var(--card);border:1px solid var(--bo)">7</button>
+      <button onclick="pinKey('8')" class="py-4 rounded-2xl text-xl font-bold" style="background:var(--card);border:1px solid var(--bo)">8</button>
+      <button onclick="pinKey('9')" class="py-4 rounded-2xl text-xl font-bold" style="background:var(--card);border:1px solid var(--bo)">9</button>
+      <button onclick="pinBack()" class="py-4 rounded-2xl text-xl font-bold" style="background:var(--card);border:1px solid var(--bo)">⌫</button>
+      <button onclick="pinKey('0')" class="py-4 rounded-2xl text-xl font-bold" style="background:var(--card);border:1px solid var(--bo)">0</button>
+      <button id="pinSkip" onclick="unlockApp()" class="py-4 rounded-2xl text-xs font-bold" style="background:var(--card);border:1px solid var(--bo);color:var(--t2)">Salta</button>
+    </div>
+  </div>
+</div>
 
 <!-- BOTTOM NAV -->
 <div class="bnav fixed bottom-0 left-0 right-0 grid grid-cols-5 items-center px-2 pt-2 z-40" style="padding-bottom:max(env(safe-area-inset-bottom),10px)">
@@ -1482,6 +1667,25 @@ const DBS={
   /* ── GOALS (legacy CFG.goalName/goalVal kept) ─────────── */
   // goalName e goalVal rimangono in settings per semplicità
 
+  /* ── SUBSCRIPTIONS ───────────────────────────────────── */
+  async saveSub(sub){
+    if(!CFG.subscriptions) CFG.subscriptions=[];
+    const idx=CFG.subscriptions.findIndex(s=>s.id===sub.id);
+    if(idx>=0) CFG.subscriptions[idx]=sub; else CFG.subscriptions.push(sub);
+    localStorage.setItem('mpx_subscriptions',JSON.stringify(CFG.subscriptions));
+    if(!db) return sub;
+    try{
+      const row={name:sub.name,amount:sub.amount||null,billing_cycle:sub.cycle||'monthly',category_key:sub.cat||null,active:sub.active!==false,next_billing:sub.next||null,color:sub.color||null};
+      if(sub.id&&!sub.id.toString().startsWith('ls')){
+        await db.from('subscriptions').upsert({id:sub.id,...row},{onConflict:'id'});
+      } else {
+        const {data}=await db.from('subscriptions').insert([row]).select();
+        if(data?.[0]){ sub.id=data[0].id; const i=CFG.subscriptions.findIndex(s=>s.id===sub.id); if(i>=0) CFG.subscriptions[i].id=data[0].id; localStorage.setItem('mpx_subscriptions',JSON.stringify(CFG.subscriptions)); }
+      }
+    }catch(e){ console.warn('subs.save',e); }
+    return sub;
+  },
+
   /* ── MIGRATE LOCAL → DB ──────────────────────────────── */
   async migrateAll(){
     if(!db){ toast('Connetti Supabase prima','warn'); return; }
@@ -1658,9 +1862,24 @@ function openAdd(){
   openModal('addM');
 }
 function openCalc(){ haptic(); openModal('calcM'); }
+function calcToTx(){
+  const v=parseFloat(S.calcVal)||parseFloat(S.calcDisp)||0;
+  if(v>0){
+    const el=document.getElementById('txAmt');
+    if(el){ el.value=v.toFixed(2); }
+    closeModal('calcM');
+    toast('Importo impostato: '+fmt(v),'success');
+  } else {
+    toast('Inserisci un valore valido','warn');
+  }
+}
 function openBudM(){ haptic(); buildBudgetList(); openModal('budM'); }
-function openImpM(){ haptic(); resetImport(); openModal('impM'); }
-function openInsM(){ haptic(); openModal('insM'); }
+function saveBudgets(){
+  // budget inputs use onchange → setBudget() already → just close & confirm
+  closeAll(); toast('Budget salvati ✓','success'); renderAll();
+}
+function resetF(){ clearFilters(); }
+function setDark(v){ toggleDark(v); }
 
 /* ============================================================
    TYPE TOGGLE
@@ -2263,7 +2482,7 @@ function setPeriod(p){
 function changeMonth(d){ S.viewDate=new Date(S.viewDate.getFullYear(),S.viewDate.getMonth()+d,1); updateDash(); }
 function prevMonth(){ changeMonth(-1); }
 function nextMonth(){ changeMonth(1); }
-function jumpToMonth(offset){ changeMonth(offset); }function switchTabById(id){
+function switchTabById(id){
   const nav=document.querySelector(`.ni[onclick*="'${id}'"]`);
   switchTab(id, nav);
 }
@@ -2423,23 +2642,6 @@ function exportJSON(){
 function unlockAch(id){
   if(!CFG.ach[id]){CFG.ach[id]=Date.now();saveCfg();renderAchievements();}
 }
-function exportCurrentMonthPDF(){
-  const month=S.viewDate.toLocaleDateString('it-IT',{month:'long',year:'numeric'});
-  const mTxs=S.txs.filter(t=>{
-    const d=new Date(t.date+'T12:00');
-    return d.getMonth()===S.viewDate.getMonth()&&d.getFullYear()===S.viewDate.getFullYear();
-  });
-  let txt=`MONEY PRO X — Report ${month}\n${'─'.repeat(40)}\n\n`;
-  mTxs.sort((a,b)=>new Date(b.date)-new Date(a.date)).forEach(t=>{
-    txt+=`${t.date}  ${t.type.padEnd(10)}  ${String(fmt(t.amount)).padEnd(14)}  ${(CATS[t.category_id]?.l||'Altro').padEnd(18)}  ${t.description||''}\n`;
-  });
-  const tIn =mTxs.filter(t=>t.type==='income').reduce((s,t)=>s+ +t.amount,0);
-  const tOut=mTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+ +t.amount,0);
-  txt+=`\n${'─'.repeat(40)}\nEntrate: ${fmt(tIn)}   Uscite: ${fmt(tOut)}   Netto: ${fmt(tIn-tOut)}\n`;
-  download(new Blob([txt],{type:'text/plain;charset=utf-8;'}),`Report_${month.replace(' ','_')}.txt`);
-  toast('Report esportato ✓','success');
-}
-
 /* ============================================================
    WIPE
 ============================================================ */
@@ -2507,7 +2709,7 @@ function launchConfetti(){
    CALCULATOR
 ============================================================ */
 function buildCalc(){
-  const el=document.getElementById('calcKeys');
+  const el=document.getElementById('calcGrid')||document.getElementById('calcKeys');
   if(!el) return;
   const keys=[
     {l:'C',cl:'op',fn:()=>updCalc('')},
@@ -2590,7 +2792,6 @@ function setTF(type){
   renderList();
 }
 function filterTxType(type){ setTF(type); }
-function setTxFilter(type, el){ setTF(type); }
 
 // 3. ADVANCED FILTERS TOGGLE
 function toggleAdv(){
@@ -2682,23 +2883,24 @@ async function deleteTemplate(i){
 function openSplit(){
   haptic();
   S.splitN=2;
-  document.getElementById('splitN').textContent=2;
-  document.getElementById('splitAmt').value='';
-  document.getElementById('splitRes').textContent=fmt(0);
+  const sN=document.getElementById('splitN'); if(sN) sN.textContent=2;
+  const sA=document.getElementById('splitAmt'); if(sA) sA.value='';
+  const sR=document.getElementById('splitRes'); if(sR) sR.textContent=fmt(0);
   openModal('splitM');
 }
 function splitAdj(d){
   S.splitN=Math.max(2,Math.min(20,S.splitN+d));
-  document.getElementById('splitN').textContent=S.splitN;
+  const _sN=document.getElementById('splitN'); if(_sN) _sN.textContent=S.splitN;
   calcSplit();haptic();
 }
 function calcSplit(){
-  const amt=parseFloat(document.getElementById('splitAmt').value)||0;
+  const _sA=document.getElementById('splitAmt'); 
+  const amt=parseFloat(_sA?.value)||0;
   const res=Math.ceil((amt/S.splitN)*100)/100;
-  document.getElementById('splitRes').textContent=fmt(res);
+  const _sR=document.getElementById('splitRes'); if(_sR) _sR.textContent=fmt(res);
 }
 function splitToTx(){
-  const amt=parseFloat(document.getElementById('splitAmt').value)||0;
+  const amt=parseFloat(document.getElementById('splitAmt')?.value)||0;
   if(!amt){toast('Inserisci l\'importo','warn');return;}
   const myShare=Math.ceil((amt/S.splitN)*100)/100;
   closeAll();
@@ -2806,6 +3008,309 @@ function renderRecurringList(){
   }).join('')+`</div>`;
   lucide.createIcons();
 }
+
+/* ============================================================
+   DEBITI, ABBONAMENTI, OBIETTIVI, PATRIMONIO
+============================================================ */
+let debtType="borrow";
+function setDebtType(t){
+  debtType=t;
+  const b=document.getElementById('debtTypeBorrow');
+  const l=document.getElementById('debtTypeLend');
+  if(b) b.style.background=t==='borrow'?'var(--bd)':'rgba(255,59,92,.12)';
+  if(b) b.style.color=t==='borrow'?'#fff':'var(--bd)';
+  if(l) l.style.background=t==='lend'?'var(--ok)':'rgba(0,200,150,.12)';
+  if(l) l.style.color=t==='lend'?'#fff':'var(--ok)';
+}
+function addDebt(){
+  const person=document.getElementById('debtPerson')?.value.trim();
+  const amt=parseFloat(document.getElementById('debtAmt')?.value)||0;
+  const note=document.getElementById('debtNote')?.value.trim()||'';
+  if(!person){toast('Inserisci il nome della persona','warn');return;}
+  if(!amt||amt<=0){toast('Inserisci un importo valido','error');return;}
+  if(!CFG.debts) CFG.debts=[];
+  CFG.debts.push({id:Date.now(),person,amount:amt,type:debtType,note,date:new Date().toISOString().split('T')[0],settled:false});
+  document.getElementById('debtPerson').value='';
+  document.getElementById('debtAmt').value='';
+  document.getElementById('debtNote').value='';
+  saveCfg(); renderDebtsList(); renderDebtsMini();
+  toast(`${debtType==='borrow'?'Credito':'Debito'} con ${person} aggiunto ✓`,'success');
+}
+function settleDebt(id){
+  haptic();
+  if(!CFG.debts) return;
+  const d=CFG.debts.find(x=>x.id===id);
+  if(d) d.settled=!d.settled;
+  saveCfg(); renderDebtsList(); renderDebtsMini();
+  toast(d?.settled?'Segnato come saldato ✓':'Riaperto','success');
+}
+function deleteDebt(id){
+  if(!CFG.debts) return;
+  CFG.debts=CFG.debts.filter(x=>x.id!==id);
+  saveCfg(); renderDebtsList(); renderDebtsMini();
+}
+function renderDebtsList(){
+  const el=document.getElementById('debtsList');
+  if(!el) return;
+  const debts=(CFG.debts||[]);
+  if(!debts.length){el.innerHTML='<p class="text-sm text-center py-4" style="color:var(--t2)">Nessun debito o credito</p>';return;}
+  const active=debts.filter(d=>!d.settled);
+  const settled=debts.filter(d=>d.settled);
+  const render=(arr,label)=> arr.length ? `<p class="text-[9px] font-bold uppercase tracking-wider my-2" style="color:var(--t2)">${label}</p>`+arr.map(d=>{
+    const isBorrow=d.type==='borrow';
+    const col=isBorrow?'var(--ok)':'var(--bd)';
+    const bg=isBorrow?'rgba(0,200,150,.1)':'rgba(255,59,92,.1)';
+    return `<div class="flex items-center gap-3 p-3 rounded-2xl" style="background:${bg};opacity:${d.settled?.6:1}">
+      <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-black flex-shrink-0" style="background:${col}">${d.person.charAt(0).toUpperCase()}</div>
+      <div class="flex-1 min-w-0">
+        <p class="font-bold text-sm">${d.person}</p>
+        <p class="text-[10px]" style="color:var(--t2)">${isBorrow?'💚 Mi deve':'🔴 Devo io'} · ${d.date}${d.note?' · '+d.note:''}</p>
+      </div>
+      <p class="font-black text-sm" style="color:${col}">${fmt(d.amount)}</p>
+      <div class="flex flex-col gap-1">
+        <button onclick="settleDebt(${d.id})" class="px-2 py-1 rounded-lg text-[9px] font-bold" style="background:var(--bg2);color:var(--t2)">${d.settled?'Riapri':'Salda'}</button>
+        <button onclick="deleteDebt(${d.id})" class="px-2 py-1 rounded-lg text-[9px] font-bold" style="background:rgba(255,59,92,.1);color:var(--bd)">Elimina</button>
+      </div>
+    </div>`;
+  }).join('') : '';
+  el.innerHTML=render(active,'In sospeso')+render(settled,'Saldati');
+}
+function renderDebtsMini(){
+  const el=document.getElementById('debtsMini');
+  if(!el) return;
+  const debts=(CFG.debts||[]).filter(d=>!d.settled);
+  if(!debts.length){el.innerHTML='<p class="text-xs" style="color:var(--t2)">Nessun debito in sospeso</p>';return;}
+  const totalBorrow=debts.filter(d=>d.type==='borrow').reduce((s,d)=>s+d.amount,0);
+  const totalLend=debts.filter(d=>d.type==='lend').reduce((s,d)=>s+d.amount,0);
+  el.innerHTML=`<div class="flex gap-3">
+    ${totalBorrow>0?`<div class="flex-1 p-2 rounded-xl text-center" style="background:rgba(0,200,150,.1)"><p class="text-[9px] font-bold" style="color:var(--ok)">Mi devono</p><p class="font-black text-sm" style="color:var(--ok)">${fmt(totalBorrow)}</p></div>`:''}
+    ${totalLend>0?`<div class="flex-1 p-2 rounded-xl text-center" style="background:rgba(255,59,92,.1)"><p class="text-[9px] font-bold" style="color:var(--bd)">Devo io</p><p class="font-black text-sm" style="color:var(--bd)">${fmt(totalLend)}</p></div>`:''}
+  </div>`;
+}
+function openDebtsM(){
+  haptic();
+  if(!CFG.debts) CFG.debts=[];
+  setDebtType('borrow');
+  renderDebtsList();
+  openModal('debtsM');
+}
+
+/* ============================================================
+   ABBONAMENTI
+============================================================ */
+function addSubscription(){
+  const name=document.getElementById('subName')?.value.trim();
+  const amt=parseFloat(document.getElementById('subAmt')?.value)||0;
+  const freq=document.getElementById('subFreq')?.value||'monthly';
+  const next=document.getElementById('subNextDate')?.value||new Date().toISOString().split('T')[0];
+  if(!name){toast('Inserisci il nome','warn');return;}
+  if(!amt||amt<=0){toast('Inserisci un importo valido','error');return;}
+  if(!CFG.subscriptions) CFG.subscriptions=[];
+  CFG.subscriptions.push({id:Date.now(),name,amount:amt,frequency:freq,nextDate:next,active:true});
+  document.getElementById('subName').value='';
+  document.getElementById('subAmt').value='';
+  saveCfg(); renderSubsList(); renderSubsMini();
+  toast(`${name} aggiunto ✓`,'success');
+}
+function toggleSub(id){
+  const s=(CFG.subscriptions||[]).find(x=>x.id===id);
+  if(s) s.active=!s.active;
+  saveCfg(); renderSubsList(); renderSubsMini();
+}
+function deleteSub(id){
+  CFG.subscriptions=(CFG.subscriptions||[]).filter(x=>x.id!==id);
+  saveCfg(); renderSubsList(); renderSubsMini();
+}
+function subMonthlyAmount(s){
+  if(s.frequency==='monthly') return s.amount;
+  if(s.frequency==='yearly') return s.amount/12;
+  if(s.frequency==='weekly') return s.amount*52/12;
+  return s.amount;
+}
+function renderSubsList(){
+  const el=document.getElementById('subsList');
+  if(!el) return;
+  const subs=(CFG.subscriptions||[]);
+  if(!subs.length){el.innerHTML='<p class="text-sm text-center py-4" style="color:var(--t2)">Nessun abbonamento</p>';return;}
+  const monthly=subs.filter(s=>s.active).reduce((t,s)=>t+subMonthlyAmount(s),0);
+  const yearly=monthly*12;
+  const totM=document.getElementById('subsTotalMo');
+  const totY=document.getElementById('subsTotalYr');
+  if(totM) totM.textContent=fmt(monthly);
+  if(totY) totY.textContent=fmt(yearly);
+  const freqLabel={monthly:'Mensile',yearly:'Annuale',weekly:'Settimanale'};
+  el.innerHTML=subs.map(s=>{
+    const mo=subMonthlyAmount(s);
+    const daysUntil=Math.ceil((new Date(s.nextDate)-new Date())/(1000*60*60*24));
+    const urgent=daysUntil<=7&&daysUntil>=0;
+    return `<div class="flex items-center gap-3 p-3 rounded-2xl" style="background:var(--bg2);opacity:${s.active?1:.55}">
+      <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-black text-sm flex-shrink-0" style="background:linear-gradient(135deg,var(--acc),var(--br))">${s.name.charAt(0).toUpperCase()}</div>
+      <div class="flex-1 min-w-0">
+        <p class="font-bold text-sm truncate">${s.name}</p>
+        <p class="text-[10px]" style="color:${urgent?'var(--wn)':'var(--t2)'}">
+          ${freqLabel[s.frequency]||s.frequency} · Prossimo: ${s.nextDate}${urgent?` (fra ${daysUntil}gg!) ⚠️`:''}
+        </p>
+      </div>
+      <div class="text-right">
+        <p class="font-black text-sm" style="color:var(--acc)">${fmt(s.amount)}</p>
+        <p class="text-[9px]" style="color:var(--t2)">${fmt(mo)}/mo</p>
+      </div>
+      <div class="flex flex-col gap-1 ml-1">
+        <button onclick="toggleSub(${s.id})" class="px-2 py-1 rounded-lg text-[9px] font-bold" style="background:var(--card);color:var(--t2)">${s.active?'Pausa':'Attiva'}</button>
+        <button onclick="deleteSub(${s.id})" class="px-2 py-1 rounded-lg text-[9px] font-bold" style="background:rgba(255,59,92,.1);color:var(--bd)">Elimina</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderSubsMini(){
+  const el=document.getElementById('subsMini');
+  if(!el) return;
+  const subs=(CFG.subscriptions||[]).filter(s=>s.active);
+  if(!subs.length){el.innerHTML='<p class="text-xs" style="color:var(--t2)">Nessun abbonamento attivo</p>';return;}
+  const monthly=subs.reduce((t,s)=>t+subMonthlyAmount(s),0);
+  el.innerHTML=`<div class="flex justify-between items-center">
+    <p class="text-xs" style="color:var(--t2)">${subs.length} abbonamento${subs.length>1?'i':''} attivi</p>
+    <p class="font-black text-sm" style="color:var(--acc)">${fmt(monthly)}/mese</p>
+  </div>`;
+}
+function openSubsM(){
+  haptic();
+  if(!CFG.subscriptions) CFG.subscriptions=[];
+  const now=new Date(); now.setDate(now.getDate()+30);
+  document.getElementById('subNextDate').valueAsDate=now;
+  renderSubsList();
+  openModal('subsM');
+}
+
+/* ============================================================
+   GOALS MANAGER (multipli)
+============================================================ */
+function addGoal(){
+  const name=document.getElementById('goalNameI')?.value.trim();
+  const target=parseFloat(document.getElementById('goalTargetI')?.value)||0;
+  const current=parseFloat(document.getElementById('goalCurrentI')?.value)||0;
+  const deadline=document.getElementById('goalDeadlineI')?.value||'';
+  if(!name){toast('Inserisci un nome per l\'obiettivo','warn');return;}
+  if(!target||target<=0){toast('Inserisci un target valido','error');return;}
+  if(!CFG.goals) CFG.goals=[];
+  CFG.goals.push({id:Date.now(),name,target,current:Math.min(current,target),deadline,completed:false});
+  document.getElementById('goalNameI').value='';
+  document.getElementById('goalTargetI').value='';
+  document.getElementById('goalCurrentI').value='';
+  saveCfg(); renderGoalsList();
+  toast(`Obiettivo "${name}" aggiunto ✓`,'success');
+}
+function deleteGoal(id){
+  CFG.goals=(CFG.goals||[]).filter(x=>x.id!==id);
+  saveCfg(); renderGoalsList();
+}
+function depositGoal(id){
+  const g=(CFG.goals||[]).find(x=>x.id===id);
+  if(!g) return;
+  const v=parseFloat(prompt(`Aggiungi risparmio a "${g.name}":`)||0);
+  if(!v||v<=0) return;
+  g.current=Math.min(g.target,g.current+v);
+  if(g.current>=g.target){ g.completed=true; launchConfetti(); toast(`🎉 Obiettivo "${g.name}" raggiunto!`,'success'); }
+  saveCfg(); renderGoalsList();
+}
+function renderGoalsList(){
+  const el=document.getElementById('goalsList');
+  if(!el) return;
+  const goals=(CFG.goals||[]);
+  if(!goals.length){el.innerHTML='<p class="text-sm text-center py-4" style="color:var(--t2)">Nessun obiettivo. Aggiungine uno!</p>';return;}
+  el.innerHTML=goals.map(g=>{
+    const pct=Math.min(100,Math.round(g.current/g.target*100));
+    const col=g.completed?'var(--ok)':pct>=75?'var(--ok)':pct>=40?'var(--wn)':'var(--br)';
+    const daysLeft=g.deadline?Math.ceil((new Date(g.deadline)-new Date())/(1000*60*60*24)):-1;
+    const monthly=g.deadline&&daysLeft>0?(g.target-g.current)/(daysLeft/30):0;
+    return `<div class="card p-4">
+      <div class="flex justify-between items-start mb-3">
+        <div>
+          <p class="font-bold">${g.name}${g.completed?' 🎉':''}</p>
+          ${g.deadline?`<p class="text-[10px]" style="color:var(--t2)">${daysLeft>0?`Mancano ${daysLeft} giorni`:daysLeft===0?'Scade oggi!':'Scaduto'}</p>`:''}
+        </div>
+        <div class="text-right">
+          <p class="font-black text-lg" style="color:${col}">${pct}%</p>
+          <div class="flex gap-1">
+            <button onclick="depositGoal(${g.id})" class="px-2 py-1 rounded-lg text-[9px] font-bold" style="background:rgba(0,102,255,.1);color:var(--br)">+</button>
+            <button onclick="deleteGoal(${g.id})" class="px-2 py-1 rounded-lg text-[9px] font-bold" style="background:rgba(255,59,92,.1);color:var(--bd)">×</button>
+          </div>
+        </div>
+      </div>
+      <div class="w-full h-2.5 rounded-full overflow-hidden mb-2" style="background:var(--bg2)">
+        <div style="width:${pct}%;height:100%;background:${col};border-radius:99px;transition:width 1s ease"></div>
+      </div>
+      <div class="flex justify-between text-[10px]" style="color:var(--t2)">
+        <span>${fmt(g.current)} risparmiati</span>
+        <span>Target: ${fmt(g.target)}</span>
+      </div>
+      ${monthly>0&&!g.completed?`<p class="text-[10px] mt-1" style="color:var(--wn)">⚡ Risparmia ${fmt(monthly)}/mese per raggiungere l'obiettivo</p>`:''}
+    </div>`;
+  }).join('');
+}
+function openGoalsM(){ haptic(); renderGoalsList(); openModal('goalsM'); }
+
+/* ============================================================
+   NET WORTH HISTORY CHART
+============================================================ */
+function openNetworthM(){
+  haptic();
+  openModal('networthM');
+  renderNetworthChart();
+}
+function renderNetworthChart(){
+  const canvas=document.getElementById('networthChart');
+  if(!canvas) return;
+  // Costruisce net worth mensile
+  const now=new Date();
+  const months=Array.from({length:12},(_,i)=>{
+    const d=new Date(now.getFullYear(),now.getMonth()-11+i,1);
+    return d;
+  });
+  const labels=months.map(d=>d.toLocaleDateString('it-IT',{month:'short',year:'2-digit'}));
+  const netWorthByMonth=months.map(d=>{
+    const upTo=new Date(d.getFullYear(),d.getMonth()+1,0);
+    let nw=0;
+    S.txs.forEach(t=>{
+      if(new Date(t.date+'T12:00')<=upTo && t.type!=='transfer'){
+        nw+=t.type==='income'?+t.amount:-+t.amount;
+      }
+    });
+    return nw;
+  });
+  if(S.charts.networth) S.charts.networth.destroy();
+  const ctx=canvas.getContext('2d');
+  const pos=netWorthByMonth[netWorthByMonth.length-1]>=0;
+  S.charts.networth=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[{
+      label:'Patrimonio Netto',
+      data:netWorthByMonth,
+      borderColor:pos?'var(--ok)':'var(--bd)',
+      backgroundColor:pos?'rgba(0,200,150,.1)':'rgba(255,59,92,.1)',
+      fill:true,tension:.4,pointRadius:3,
+      pointBackgroundColor:pos?'var(--ok)':'var(--bd)',
+    }]},
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>fmtShort(v)}}}}
+  });
+  // stats box
+  const first=netWorthByMonth[0];
+  const last=netWorthByMonth[netWorthByMonth.length-1];
+  const change=last-first;
+  const pctChange=first!==0?Math.round(change/Math.abs(first)*100):0;
+  const statsEl=document.getElementById('networthStats');
+  if(statsEl) statsEl.innerHTML=`
+    <div class="sch text-center"><p class="text-[9px] font-bold uppercase" style="color:var(--t2)">Ora</p><p class="font-black text-base" style="color:${last>=0?'var(--ok)':'var(--bd)'}">${fmtShort(last)}</p></div>
+    <div class="sch text-center"><p class="text-[9px] font-bold uppercase" style="color:var(--t2)">Variazione</p><p class="font-black text-base" style="color:${change>=0?'var(--ok)':'var(--bd)'}">${change>=0?'+':''}${fmtShort(change)}</p></div>
+    <div class="sch text-center"><p class="text-[9px] font-bold uppercase" style="color:var(--t2)">12 Mesi %</p><p class="font-black text-base" style="color:${pctChange>=0?'var(--ok)':'var(--bd)'}">${pctChange>=0?'+':''}${pctChange}%</p></div>
+  `;
+}
+// Aliases
+function openGoals(){ openGoalsM(); }
+function openDebts(){ openDebtsM(); }
+function openSubs(){ openSubsM(); }
+function openNetworth(){ openNetworthM(); }
+
 function renderRecurringBadge(){
   // nothing to render here — placeholder for badge logic
 }
@@ -2891,9 +3396,17 @@ function pinKey(k){
   }
 }
 function updatePinDots(){
-  document.querySelectorAll('#pinDots div').forEach((d,i)=>{
-    d.style.background=i<S.pinBuffer.length?'var(--br)':'var(--bo)';
+  ['pinD1','pinD2','pinD3','pinD4'].forEach((id,i)=>{
+    const d=document.getElementById(id);
+    if(d) d.style.background=i<S.pinBuffer.length?'var(--br)':'var(--bg2)';
   });
+}
+function togglePinSetting(v){
+  if(v){ enablePin(); }
+  else { disablePin(); }
+  // sync toggle state
+  const tog=document.getElementById('pinToggle');
+  if(tog) tog.checked=CFG.pinEnabled;
 }
 function unlockApp(){ document.getElementById('pinScreen').classList.add('hidden'); S.pinBuffer=''; }
 
