@@ -97,6 +97,40 @@ input:checked+.tog-sl::after{transform:translateX(20px)}
 .tbtn{background:var(--bg2);color:var(--t2);border:1px solid var(--bo);border-radius:.625rem;padding:.26rem .68rem;font-size:.72rem;font-weight:700;transition:all .15s;cursor:pointer}
 .tbtn.on{background:var(--br);color:#fff;border-color:var(--br)}
 /* period tabs */
+
+/* ── Icon Picker Grid ── */
+.icon-pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:6px;max-height:180px;overflow-y:auto;padding:4px}
+.icon-pick-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 4px;border-radius:10px;border:2px solid transparent;cursor:pointer;transition:all .18s;background:var(--bg2);font-size:9px;font-weight:700;color:var(--t2)}
+.icon-pick-btn:hover{background:rgba(0,102,255,.1);color:var(--br)}
+.icon-pick-btn.selected{border-color:var(--br);background:rgba(0,102,255,.12);color:var(--br)}
+.icon-pick-btn .icon-preview{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px}
+/* ── Cat Picker Pills ── */
+.cat-pick-wrap{display:flex;gap:8px;overflow-x:auto;padding:4px 0 8px;-ms-overflow-style:none;scrollbar-width:none}
+.cat-pick-wrap::-webkit-scrollbar{display:none}
+.cat-pill{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;flex-shrink:0;padding:8px 10px;border-radius:14px;border:2px solid var(--bo);background:var(--bg2);transition:all .18s;min-width:58px}
+.cat-pill:hover{border-color:var(--br)}
+.cat-pill.on{border-color:var(--br);background:rgba(0,102,255,.1)}
+.cat-pill .cp-icon{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.cat-pill span{font-size:8px;font-weight:700;color:var(--t2);text-align:center;line-height:1.1;max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ── Acc Selector ── */
+.acc-selector{display:flex;gap:8px;overflow-x:auto;padding:4px 0;-ms-overflow-style:none;scrollbar-width:none}
+.acc-selector::-webkit-scrollbar{display:none}
+.acc-pill{display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:12px;border:2px solid var(--bo);background:var(--bg2);cursor:pointer;flex-shrink:0;transition:all .18s;white-space:nowrap}
+.acc-pill:hover{border-color:var(--br)}
+.acc-pill.on{border-color:var(--br);background:rgba(0,102,255,.1)}
+.acc-pill .ap-icon{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.acc-pill span{font-size:11px;font-weight:700;color:var(--t)}
+/* ── Mobile fixes ── */
+@media(max-width:430px){
+  .main-scroll{padding-bottom:calc(72px + max(env(safe-area-inset-bottom),10px))!important}
+  .sh-up{border-radius:24px 24px 0 0}
+  .wc{min-width:128px}
+  .cat-pill{min-width:52px;padding:6px 8px}
+  .cat-pill .cp-icon{width:28px;height:28px;font-size:13px}
+}
+/* ── Fintech badge ── */
+.ft-badge{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;font-family:'Syne',sans-serif;color:#fff;flex-shrink:0;letter-spacing:-.5px}
+
 .ptab{padding:.36rem .88rem;border-radius:.6rem;font-size:.78rem;font-weight:700;transition:all .2s;cursor:pointer}
 .ptab.on{background:var(--br);color:#fff}
 .ptab:not(.on){color:var(--t2)}
@@ -204,22 +238,25 @@ input:checked+.tog-sl::after{transform:translateX(20px)}
       </div>
       <!-- account (expense/income) -->
       <div id="accRow" class="rounded-xl p-3" style="background:var(--bg2);border:1.5px solid rgba(0,102,255,.2)">
-        <label class="text-[10px] font-bold uppercase tracking-wider block mb-1" style="color:var(--br)">Conto</label>
-        <select id="txAcc" class="w-full bg-transparent text-base font-black outline-none syne" style="color:var(--br)"></select>
+        <label class="text-[10px] font-bold uppercase tracking-wider block mb-1.5" style="color:var(--br)">Conto</label>
+        <div class="acc-selector" id="accPickWrap"></div>
+        <select id="txAcc" class="hidden"></select>
       </div>
       <!-- transfer: from → to -->
       <div id="transferRow" class="hidden rounded-xl p-4 space-y-3" style="background:var(--bg2);border:1.5px solid rgba(255,149,0,.25)">
         <div class="flex items-center gap-3">
           <div class="flex-1">
             <label class="text-[10px] font-bold uppercase tracking-wider block mb-1.5" style="color:var(--wn)">Da conto</label>
-            <select id="txAccFrom" class="inp text-sm font-bold" style="color:var(--t)"></select>
+            <div class="acc-selector" id="accFromWrap"></div>
+            <select id="txAccFrom" class="hidden"></select>
           </div>
           <div class="flex flex-col items-center pt-4">
             <i data-lucide="arrow-right" class="w-5 h-5 arr-pulse" style="color:var(--wn)"></i>
           </div>
           <div class="flex-1">
             <label class="text-[10px] font-bold uppercase tracking-wider block mb-1.5" style="color:var(--wn)">A conto</label>
-            <select id="txAccTo" class="inp text-sm font-bold" style="color:var(--t)"></select>
+            <div class="acc-selector" id="accToWrap"></div>
+            <select id="txAccTo" class="hidden"></select>
           </div>
         </div>
         <p class="text-[10px] font-medium" style="color:var(--t2)">💡 Il patrimonio totale non cambia — i soldi si spostano tra i tuoi conti.</p>
@@ -238,7 +275,8 @@ input:checked+.tog-sl::after{transform:translateX(20px)}
         </div>
         <div id="catRow">
           <label class="text-[10px] font-bold uppercase tracking-wider block mb-1.5" style="color:var(--t2)">Categoria</label>
-          <select id="txCat" class="inp"></select>
+          <div class="cat-pick-wrap" id="catPickWrap"></div>
+          <select id="txCat" class="hidden"></select>
         </div>
       </div>
       <!-- desc -->
@@ -420,7 +458,7 @@ input:checked+.tog-sl::after{transform:translateX(20px)}
 </div>
 
 <!-- ===== MAIN ===== -->
-<div class="flex-1 overflow-y-auto pb-24 ns" id="scroll" style="padding-top:max(env(safe-area-inset-top),64px)">
+<div class="flex-1 overflow-y-auto ns" id="scroll" style="padding-bottom:calc(80px + env(safe-area-inset-bottom))" style="padding-top:max(env(safe-area-inset-top),64px)">
 <div class="px-4 space-y-4">
 
 <!-- ████ HOME ████ -->
@@ -438,11 +476,11 @@ input:checked+.tog-sl::after{transform:translateX(20px)}
   </div>
 
   <!-- HERO -->
-  <div class="card hero p-6 relative" style="min-height:220px">
+  <div class="card hero p-5 relative" style="min-height:min(220px,48vw)">
     <div class="absolute rounded-full pointer-events-none" style="width:220px;height:220px;right:-60px;top:-60px;background:radial-gradient(circle,rgba(0,102,255,.28),transparent 70%);animation:breathe 4s ease-in-out infinite"></div>
     <div class="absolute rounded-full pointer-events-none" style="width:160px;height:160px;left:-40px;bottom:-40px;background:radial-gradient(circle,rgba(124,58,237,.2),transparent 70%);animation:breathe 5.5s ease-in-out infinite 1.5s"></div>
     <p class="text-[9px] font-bold uppercase tracking-widest text-gray-400 mb-1 relative z-10">Patrimonio Netto</p>
-    <h2 id="uiBal" class="text-5xl font-black text-white tracking-tighter mb-1 relative z-10" style="font-variant-numeric:tabular-nums;letter-spacing:-.02em">€ 0,00</h2>
+    <h2 id="uiBal" class="text-4xl font-black text-white tracking-tighter mb-1 relative z-10" style="font-size:clamp(1.8rem,8vw,2.8rem)" style="font-variant-numeric:tabular-nums;letter-spacing:-.02em">€ 0,00</h2>
     <div class="flex items-center gap-2 mb-5 relative z-10">
       <span id="trendP" class="tp" style="background:rgba(0,200,150,.18);color:var(--ok)">+0.0%</span>
       <span class="text-xs text-gray-400">vs mese scorso</span>
@@ -547,7 +585,7 @@ input:checked+.tog-sl::after{transform:translateX(20px)}
 </div><!-- /home -->
 
 <!-- ████ CONTI ████ -->
-<div id="page-wallets" class="page space-y-4">
+<div id="page-wallets" class="page space-y-4" style="padding-bottom:calc(72px + max(env(safe-area-inset-bottom),10px))">
   <h1 class="text-2xl font-bold">Conti</h1>
   <div class="flex gap-3 overflow-x-auto ns -mx-4 px-4 pb-1" id="wDash"></div>
 
@@ -596,8 +634,9 @@ input:checked+.tog-sl::after{transform:translateX(20px)}
 </div><!-- /wallets -->
 
 <!-- ████ STATS ████ -->
-<div id="page-stats" class="page space-y-4">
-  <div class="flex justify-between items-center">
+<div id="page-stats" class="page" style="padding-bottom:calc(72px + max(env(safe-area-inset-bottom),10px))">
+  <!-- Header -->
+  <div class="flex justify-between items-center mb-2">
     <h1 class="text-2xl font-bold">Analisi</h1>
     <div class="flex gap-1 p-1 rounded-xl" style="background:var(--bg2)">
       <button onclick="setPeriod('month')" id="pm" class="ptab on">Mese</button>
@@ -606,65 +645,135 @@ input:checked+.tog-sl::after{transform:translateX(20px)}
     </div>
   </div>
 
-  <!-- savings rate gauge -->
+  <!-- KPI Strip -->
+  <div class="grid grid-cols-2 gap-2">
+    <div class="card p-4 relative overflow-hidden">
+      <div class="absolute inset-0 opacity-5" style="background:linear-gradient(135deg,var(--ok),transparent)"></div>
+      <p class="text-[9px] font-bold uppercase tracking-widest mb-0.5 relative" style="color:var(--t2)">Tasso Risparmio</p>
+      <p id="srPct" class="text-2xl font-black relative" style="color:var(--ok);font-variant-numeric:tabular-nums">0%</p>
+      <p id="srLbl" class="text-[10px] relative" style="color:var(--t2)">—</p>
+    </div>
+    <div class="card p-4 relative overflow-hidden">
+      <div class="absolute inset-0 opacity-5" style="background:linear-gradient(135deg,var(--br),transparent)"></div>
+      <p class="text-[9px] font-bold uppercase tracking-widest mb-0.5 relative" style="color:var(--t2)">Spesa Media/gg</p>
+      <p id="statAvgDay" class="text-2xl font-black relative" style="font-variant-numeric:tabular-nums">—</p>
+      <p id="statAvgTrend" class="text-[10px] relative" style="color:var(--t2)">questo mese</p>
+    </div>
+    <div class="card p-4 relative overflow-hidden">
+      <div class="absolute inset-0 opacity-5" style="background:linear-gradient(135deg,var(--wn),transparent)"></div>
+      <p class="text-[9px] font-bold uppercase tracking-widest mb-0.5 relative" style="color:var(--t2)">Top Categoria</p>
+      <p id="statTopCat" class="text-sm font-black relative truncate">—</p>
+      <p id="statTopAmt" class="text-[10px] relative" style="color:var(--t2)">—</p>
+    </div>
+    <div class="card p-4 relative overflow-hidden">
+      <div class="absolute inset-0 opacity-5" style="background:linear-gradient(135deg,var(--bd),transparent)"></div>
+      <p class="text-[9px] font-bold uppercase tracking-widest mb-0.5 relative" style="color:var(--t2)">Transazioni</p>
+      <p id="statTxCount" class="text-2xl font-black relative" style="font-variant-numeric:tabular-nums">0</p>
+      <p class="text-[10px] relative" style="color:var(--t2)">questo periodo</p>
+    </div>
+  </div>
+
+  <!-- CHART 1: Wealth Evolution (custom canvas) -->
   <div class="card p-5">
-    <div class="grid grid-cols-2 gap-4 items-center">
+    <div class="flex justify-between items-start mb-4">
       <div>
-        <p class="text-[10px] font-bold uppercase tracking-wider mb-1" style="color:var(--t2)">Tasso Risparmio</p>
-        <p id="srPct" class="text-4xl font-black gt" style="font-variant-numeric:tabular-nums">0%</p>
-        <p id="srLbl" class="text-xs mt-1" style="color:var(--t2)">Nessun dato</p>
+        <p class="text-[9px] font-bold uppercase tracking-widest" style="color:var(--t2)">Evoluzione Patrimonio</p>
+        <p id="wealthLabel" class="text-lg font-black" style="font-variant-numeric:tabular-nums">—</p>
       </div>
-      <div style="display:flex;justify-content:center">
-        <div style="position:relative;width:84px;height:84px">
-          <svg class="ring" width="84" height="84" viewBox="0 0 84 84">
-            <circle stroke="var(--bg2)" stroke-width="7" cx="42" cy="42" r="32"></circle>
-            <circle id="srRing" stroke="var(--ok)" stroke-width="7" cx="42" cy="42" r="32" stroke-dasharray="201" stroke-dashoffset="201" transform="rotate(-90 42 42)" style="transition:stroke-dashoffset 1.4s cubic-bezier(.25,1,.5,1)"></circle>
-          </svg>
-          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center"><i data-lucide="piggy-bank" class="w-5 h-5" style="color:var(--ok)"></i></div>
+      <div class="flex gap-2 text-[9px] font-bold">
+        <span class="flex items-center gap-1" style="color:var(--ok)"><span class="w-3 h-0.5 inline-block rounded" style="background:var(--ok)"></span>Entrate</span>
+        <span class="flex items-center gap-1" style="color:var(--bd)"><span class="w-3 h-0.5 inline-block rounded" style="background:var(--bd)"></span>Uscite</span>
+      </div>
+    </div>
+    <canvas id="cWealthEvol" style="width:100%;height:180px;display:block"></canvas>
+  </div>
+
+  <!-- CHART 2: Expense DNA Rings (custom canvas) -->
+  <div class="card p-5">
+    <p class="text-[9px] font-bold uppercase tracking-widest mb-4" style="color:var(--t2)">DNA delle Spese</p>
+    <div class="flex gap-4 items-center">
+      <div style="flex-shrink:0;width:150px;height:150px;position:relative">
+        <canvas id="cDNA" width="150" height="150"></canvas>
+        <div id="dnaCenter" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
+          <p class="text-[8px] font-bold uppercase" style="color:var(--t2)">Totale</p>
+          <p id="dnaTotalAmt" class="text-sm font-black" style="font-variant-numeric:tabular-nums">—</p>
         </div>
       </div>
+      <div id="dnaLegend" class="flex-1 space-y-1.5 min-w-0"></div>
     </div>
   </div>
 
-  <!-- line chart -->
-  <div class="card p-5"><h3 class="text-[10px] font-bold uppercase tracking-wider mb-4" style="color:var(--t2)">Andamento Saldo</h3><div style="height:165px"><canvas id="cLine"></canvas></div></div>
-
-  <!-- 6 month bar -->
-  <div class="card p-5"><h3 class="text-[10px] font-bold uppercase tracking-wider mb-4" style="color:var(--t2)">Confronto 6 Mesi</h3><div style="height:200px"><canvas id="c6m"></canvas></div></div>
-
-  <!-- donut + radar -->
-  <div class="grid grid-cols-2 gap-3">
-    <div class="card p-4"><h3 class="text-[9px] font-bold uppercase tracking-wider mb-3 text-center" style="color:var(--t2)">Ripartizione</h3><div style="height:170px"><canvas id="cDonut"></canvas></div></div>
-    <div class="card p-4"><h3 class="text-[9px] font-bold uppercase tracking-wider mb-3 text-center" style="color:var(--t2)">Profilo</h3><div style="height:170px"><canvas id="cRadar"></canvas></div></div>
-  </div>
-
-  <!-- day of week -->
-  <div class="card p-5"><h3 class="text-[10px] font-bold uppercase tracking-wider mb-4" style="color:var(--t2)">Spese per Giorno della Settimana</h3><div style="height:145px"><canvas id="cDow"></canvas></div></div>
-
-  <!-- income vs expense monthly -->
-  <div class="card p-5"><h3 class="text-[10px] font-bold uppercase tracking-wider mb-4" style="color:var(--t2)">Entrate vs Uscite</h3><div style="height:180px"><canvas id="cInEx"></canvas></div></div>
-
-  <!-- heatmap -->
+  <!-- CHART 3: 6-Month Waterfall -->
   <div class="card p-5">
-    <h3 class="text-[10px] font-bold uppercase tracking-wider mb-4" style="color:var(--t2)">Calendario Spese</h3>
-    <div id="heatmap" class="overflow-x-auto ns"></div>
-    <div class="flex items-center justify-end gap-1.5 mt-3">
-      <span class="text-[9px]" style="color:var(--t3)">Meno</span>
-      <div class="w-3 h-3 rounded-sm" style="background:var(--bg2)"></div>
-      <div class="w-3 h-3 rounded-sm" style="background:rgba(0,102,255,.2)"></div>
-      <div class="w-3 h-3 rounded-sm" style="background:rgba(0,102,255,.5)"></div>
-      <div class="w-3 h-3 rounded-sm" style="background:rgba(0,102,255,.8)"></div>
-      <div class="w-3 h-3 rounded-sm" style="background:var(--br)"></div>
-      <span class="text-[9px]" style="color:var(--t3)">Più</span>
+    <p class="text-[9px] font-bold uppercase tracking-widest mb-4" style="color:var(--t2)">Bilancio Mensile — 6 Mesi</p>
+    <canvas id="cWaterfall" style="width:100%;height:160px;display:block"></canvas>
+    <div class="flex justify-center gap-4 mt-3 text-[9px] font-bold">
+      <span style="color:var(--ok)">▮ Entrate</span>
+      <span style="color:var(--bd)">▮ Uscite</span>
+      <span style="color:var(--br)">▮ Saldo netto</span>
     </div>
   </div>
 
-  <!-- category budget vs real -->
-  <div class="card p-5"><h3 class="text-[10px] font-bold uppercase tracking-wider mb-4" style="color:var(--t2)">Categorie — Budget vs Reale</h3><div id="catBars" class="space-y-4"></div></div>
+  <!-- CHART 4: Weekly Radial Pattern -->
+  <div class="card p-5">
+    <p class="text-[9px] font-bold uppercase tracking-widest mb-3" style="color:var(--t2)">Pattern Settimanale</p>
+    <canvas id="cWeekRadial" style="width:100%;height:200px;display:block"></canvas>
+  </div>
+
+  <!-- CHART 5: Full-year Activity Grid -->
+  <div class="card p-5">
+    <div class="flex justify-between items-center mb-3">
+      <p class="text-[9px] font-bold uppercase tracking-widest" style="color:var(--t2)">Attività 12 Mesi</p>
+      <div class="flex items-center gap-1 text-[9px]" style="color:var(--t3)">
+        <span>Meno</span>
+        <span style="width:8px;height:8px;border-radius:2px;background:var(--bg2);display:inline-block"></span>
+        <span style="width:8px;height:8px;border-radius:2px;background:rgba(0,102,255,.3);display:inline-block"></span>
+        <span style="width:8px;height:8px;border-radius:2px;background:rgba(0,102,255,.6);display:inline-block"></span>
+        <span style="width:8px;height:8px;border-radius:2px;background:var(--br);display:inline-block"></span>
+        <span>Più</span>
+      </div>
+    </div>
+    <div id="cActivityGrid" class="overflow-x-auto ns" style="padding-bottom:4px"></div>
+  </div>
+
+  <!-- CHART 6: Category Ranking (animated bars) -->
+  <div class="card p-5">
+    <p class="text-[9px] font-bold uppercase tracking-widest mb-4" style="color:var(--t2)">Classifica Categorie</p>
+    <div id="cCatRanking" class="space-y-2.5"></div>
+  </div>
+
+  <!-- CHART 7: Budget Gauges (ring gauges) -->
+  <div class="card p-5" id="budgetGaugesCard">
+    <p class="text-[9px] font-bold uppercase tracking-widest mb-4" style="color:var(--t2)">Budget vs Reale</p>
+    <div id="cBudgetGauges" class="grid gap-3"></div>
+    <p id="noBudgetMsg" class="text-xs text-center py-2 hidden" style="color:var(--t2)">Nessun budget impostato. <button onclick="openBudM()" class="font-bold" style="color:var(--br)">Imposta →</button></p>
+  </div>
+
+  <!-- Savings rate ring (compact) -->
+  <div class="card p-5">
+    <div class="flex items-center gap-5">
+      <div style="position:relative;width:84px;height:84px;flex-shrink:0">
+        <svg width="84" height="84" viewBox="0 0 84 84">
+          <circle stroke="var(--bg2)" stroke-width="6" cx="42" cy="42" r="36" fill="none"></circle>
+          <circle id="srRing" stroke="var(--ok)" stroke-width="6" cx="42" cy="42" r="36" fill="none" stroke-dasharray="226" stroke-dashoffset="226" transform="rotate(-90 42 42)" style="transition:stroke-dashoffset 1.4s cubic-bezier(.25,1,.5,1);stroke-linecap:round"></circle>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <p id="srPctRing" class="text-lg font-black" style="font-variant-numeric:tabular-nums;color:var(--ok);line-height:1">0%</p>
+        </div>
+      </div>
+      <div class="flex-1">
+        <p class="text-[9px] font-bold uppercase tracking-widest mb-1" style="color:var(--t2)">Tasso di Risparmio</p>
+        <p id="srLblRing" class="text-sm font-bold mb-3" style="color:var(--t)">—</p>
+        <div id="catBars" class="space-y-1.5"></div>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /stats -->
 
+
 <!-- ████ SETTINGS ████ -->
-<div id="page-settings" class="page space-y-4">
+<div id="page-settings" class="page space-y-4" style="padding-bottom:calc(72px + max(env(safe-area-inset-bottom),10px))">
   <h1 class="text-2xl font-bold">Impostazioni</h1>
 
   <div class="card p-5 space-y-5">
@@ -708,7 +817,15 @@ input:checked+.tog-sl::after{transform:translateX(20px)}
         <input type="number" id="nWalletBal" placeholder="Saldo iniziale €" class="inp py-2 text-sm flex-1" step="0.01">
         <div id="nWalletColorDot" onclick="cycleAccColor()" title="Cambia colore" style="width:32px;height:32px;border-radius:50%;background:#0066FF;cursor:pointer;flex-shrink:0;border:3px solid rgba(255,255,255,.3)"></div>
       </div>
+      <!-- Icon Picker -->
+      <div>
+        <p class="text-[9px] font-bold uppercase tracking-wider mb-1.5" style="color:var(--t2)">Icona Conto</p>
+        <div class="icon-pick-grid" id="iconPickGrid"></div>
+        <input type="hidden" id="nWalletIcon" value="credit-card">
+      </div>
       <button onclick="addWallet()" class="gbtn w-full py-2.5 rounded-xl text-sm font-bold">+ Aggiungi Conto</button>
+    </div>
+    <button onclick="recalcAllBalances()" class="w-full py-2 rounded-xl text-xs font-bold flex justify-center items-center gap-2" style="background:rgba(0,200,150,.08);color:var(--ok)"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>Ricalcola Saldi Conti</button>
     </div>
   </div>
 
@@ -967,7 +1084,7 @@ input:checked+.tog-sl::after{transform:translateX(20px)}
 </div>
 
 <!-- BOTTOM NAV -->
-<div class="bnav fixed bottom-0 left-0 right-0 grid grid-cols-5 items-center px-2 pt-2 z-40" style="padding-bottom:max(env(safe-area-inset-bottom),10px)">
+<div class="bnav fixed bottom-0 left-0 right-0 grid grid-cols-5 items-center px-2 pt-1.5 z-40" style="padding-bottom:max(env(safe-area-inset-bottom),10px)">
   <div class="ni on flex flex-col items-center gap-0.5 cursor-pointer py-1" onclick="switchTab('home',this)"><i data-lucide="layout-dashboard" class="w-5 h-5"></i><span class="text-[9px] font-bold">Home</span></div>
   <div class="ni flex flex-col items-center gap-0.5 cursor-pointer py-1" onclick="switchTab('wallets',this)"><i data-lucide="wallet" class="w-5 h-5"></i><span class="text-[9px] font-bold">Conti</span></div>
   <div class="flex justify-center -mt-5">
@@ -1145,6 +1262,8 @@ async function saveTx(e){
       else S.txs.push(merged);
       saveTxs();
       toast(`Giro ${fmt(amt)} salvato ✓`,'success');
+      // update both account balances
+      if(!OFFLINE&&db){ DBS.updateAccountBalance(accFrom); DBS.updateAccountBalance(accTo); }
 
     } else {
       // — Normal transaction —
@@ -1165,6 +1284,8 @@ async function saveTx(e){
         saveTxs();
       }
       toast(S.editId?'Aggiornato ✓':'Salvato ✓','success');
+      // update account balance
+      if(!OFFLINE&&db) DBS.updateAccountBalance(payload.account);
     }
 
     closeAll(); renderAll(); if(!S.editId) checkAch();
@@ -1206,6 +1327,9 @@ async function deleteTx(id){
         await db.from('transactions').delete().eq('id',id);
       }
     }catch(e){ console.warn('deleteTx DB',e); }
+    // refresh balance for affected account(s)
+    if(t.type==='transfer'){ DBS.updateAccountBalance(t.account); if(t.account_to) DBS.updateAccountBalance(t.account_to); }
+    else DBS.updateAccountBalance(t.account);
   }
 }
 
@@ -1302,7 +1426,79 @@ let CFG={
 /* ============================================================
    CATEGORIES
 ============================================================ */
+
+/* ============================================================
+   FINTECH & ACCOUNT ICON SYSTEM
+============================================================ */
+// Fintech brand icons: { key: {label, bg, fg, text, emoji} }
+const FINTECH_BRANDS = {
+  paypal:    {label:'PayPal',    bg:'#003087',fg:'#009cde',text:'PP',  emoji:'🅿'},
+  hype:      {label:'Hype',     bg:'#6B21A8',fg:'#A855F7',text:'HY',  emoji:'💜'},
+  revolut:   {label:'Revolut',  bg:'#191C1F',fg:'#FF6B35',text:'RV',  emoji:'🔶'},
+  satispay:  {label:'Satispay', bg:'#E4002B',fg:'#FF4461',text:'S',   emoji:'🔴'},
+  n26:       {label:'N26',      bg:'#1A1A1A',fg:'#00B2A9',text:'N26', emoji:'🏦'},
+  postepay:  {label:'Postepay', bg:'#F7941D',fg:'#FFC342',text:'PP',  emoji:'🟠'},
+  wise:      {label:'Wise',     bg:'#9FE870',fg:'#163300',text:'W',   emoji:'💚'},
+  monzo:     {label:'Monzo',    bg:'#FF3464',fg:'#FFD4E0',text:'M',   emoji:'🌸'},
+  bunq:      {label:'bunq',     bg:'#00A86B',fg:'#E8FFF4',text:'bq',  emoji:'🟢'},
+  tinaba:    {label:'Tinaba',   bg:'#FF6600',fg:'#fff',   text:'Ti',  emoji:'🟠'},
+  illimity:  {label:'illimity', bg:'#1B3A6B',fg:'#5AB4FF',text:'Il',  emoji:'🔵'},
+  buddybank: {label:'Buddybank',bg:'#FF5F1F',fg:'#fff',   text:'BB',  emoji:'🟠'},
+  fineco:    {label:'FinecoBank',bg:'#005BAC',fg:'#fff',  text:'FN',  emoji:'🔵'},
+  mediolanum:{label:'Mediolanum',bg:'#00A86B',fg:'#fff',  text:'MD',  emoji:'🟢'},
+  unicredit: {label:'UniCredit',bg:'#E3000F',fg:'#fff',   text:'UC',  emoji:'🔴'},
+  intesa:    {label:'Intesa SP',bg:'#008751',fg:'#fff',   text:'IS',  emoji:'🟢'},
+  bnl:       {label:'BNL',      bg:'#004A97',fg:'#fff',   text:'BNL', emoji:'🔵'},
+  mps:       {label:'Monte Paschi',bg:'#00294D',fg:'#D4AF37',text:'MPS',emoji:'🏦'},
+};
+
+// Generic account icons (lucide icon name → display label)
+const GENERIC_ACC_ICONS = [
+  {ic:'credit-card', label:'Carta'},
+  {ic:'wallet',      label:'Wallet'},
+  {ic:'banknote',    label:'Cash'},
+  {ic:'piggy-bank',  label:'Risparmi'},
+  {ic:'trending-up', label:'Invest.'},
+  {ic:'landmark',    label:'Banca'},
+  {ic:'building-2',  label:'Ufficio'},
+  {ic:'smartphone',  label:'Digital'},
+  {ic:'coins',       label:'Monete'},
+  {ic:'briefcase',   label:'Lavoro'},
+  {ic:'home',        label:'Casa'},
+  {ic:'globe',       label:'Online'},
+];
+
+// Category emoji map for visual picker
+const CAT_EMOJI = {
+  food:'🍕', transport:'🚗', home:'🏠', shopping:'🛍',
+  health:'💊', entertain:'🎬', travel:'✈️', education:'📚',
+  salary:'💰', subscript:'🔄', invest:'📈', other:'🏷',
+};
+
+// Detect fintech brand from account name
+function detectBrand(name) {
+  if (!name) return null;
+  const n = name.toLowerCase();
+  for (const [key, brand] of Object.entries(FINTECH_BRANDS)) {
+    if (n.includes(key) || n.includes(brand.label.toLowerCase())) return key;
+  }
+  return null;
+}
+
+// Render account icon (fintech badge OR lucide icon)
+function renderAccIcon(acc, size=26, radius=8) {
+  const brand = detectBrand(acc.name);
+  if (brand) {
+    const b = FINTECH_BRANDS[brand];
+    return `<div class="ft-badge" style="width:${size}px;height:${size}px;border-radius:${radius}px;background:${b.bg};font-size:${Math.floor(size*.38)}px">${b.text}</div>`;
+  }
+  return `<div class="ft-badge" style="width:${size}px;height:${size}px;border-radius:${radius}px;background:${acc.color||'var(--br)'}22">
+    <i data-lucide="${acc.icon||'wallet'}" style="width:${Math.floor(size*.55)}px;height:${Math.floor(size*.55)}px;color:${acc.color||'var(--br)'}"></i>
+  </div>`;
+}
+
 const CATS={
+
   food:     {l:'Cibo & Rist.',   ic:'utensils',     col:'#FF9500',bg:'rgba(255,149,0,.12)',   kw:['spesa','ristorante','pizza','bar','caffè','paninoteca','gelato','cibo','lidl','esselunga','conad','carrefour','supermercato']},
   transport:{l:'Trasporti',      ic:'car',           col:'#FF3B5C',bg:'rgba(255,59,92,.12)',   kw:['benzina','treno','bus','taxi','uber','parcheggio','metro','volo','atm','trenitalia','frecciarossa','autostrada']},
   home:     {l:'Casa & Utenze',  ic:'home',         col:'#5AC8FA',bg:'rgba(90,200,250,.12)',  kw:['affitto','luce','gas','acqua','bolletta','condominio','wifi','imu','enel','eni','hera','tim','vodafone']},
@@ -1382,8 +1578,9 @@ CREATE TABLE IF NOT EXISTS accounts (
   type            text DEFAULT 'checking',
   color           text DEFAULT '#0066FF',
   icon            text DEFAULT 'wallet',
-  initial_balance numeric(12,2) DEFAULT 0,
-  sort_order      integer DEFAULT 0,
+  initial_balance  numeric(12,2) DEFAULT 0,
+  current_balance  numeric(12,2) DEFAULT 0,
+  sort_order       integer DEFAULT 0,
   created_at      timestamptz DEFAULT now()
 );
 
@@ -1509,13 +1706,42 @@ const DBS={
 
   /* ── ACCOUNTS ────────────────────────────────────────── */
   _saveLocal(){ localStorage.setItem('mpx_acc',JSON.stringify(CFG._accounts)); },
+  /* ── BALANCE TRACKING ───────────────────────────────── */
+  computeBalance(accName){
+    const acc=CFG._accounts.find(a=>a.name===accName);
+    let bal=acc?.initialBalance||0;
+    (window.S?.txs||[]).forEach(t=>{
+      const a=+t.amount;
+      if(t.type==='transfer'){
+        if(t.account===accName) bal-=a;
+        if(t.account_to===accName) bal+=a;
+      } else if(t.account===accName){
+        bal+=t.type==='expense'?-a:a;
+      }
+    });
+    return Math.round(bal*100)/100;
+  },
+  async updateAccountBalance(accName){
+    const acc=CFG._accounts?.find(a=>a.name===accName); if(!acc) return;
+    const bal=this.computeBalance(accName);
+    acc.currentBalance=bal;
+    this._saveLocal();
+    if(!db||!acc.id||acc.id.toString().startsWith('lac')) return;
+    try{ await db.from('accounts').update({current_balance:bal}).eq('id',acc.id); }
+    catch(e){ console.warn('balance.update',e); }
+  },
+  async updateAllBalances(){
+    if(!CFG._accounts?.length) return;
+    for(const acc of CFG._accounts) await this.updateAccountBalance(acc.name);
+  },
+
   async loadAccounts(){
     // try DB first
     if(db){
       try{
         const {data,error}=await db.from('accounts').select('*').order('sort_order');
         if(!error && data?.length){
-          CFG._accounts=data.map(r=>({id:r.id,name:r.name,type:r.type||'checking',color:r.color||'#0066FF',icon:r.icon||'wallet',initialBalance:+r.initial_balance||0}));
+          CFG._accounts=data.map(r=>({id:r.id,name:r.name,type:r.type||'checking',color:r.color||'#0066FF',icon:r.icon||'wallet',initialBalance:+r.initial_balance||0,currentBalance:r.current_balance!=null?+r.current_balance:undefined}));
           CFG.wallets=CFG._accounts.map(a=>a.name);
           this._saveLocal();
           const b=document.getElementById('accsDbBadge'); if(b) b.classList.remove('hidden');
@@ -1903,7 +2129,18 @@ function setFType(t){
   document.getElementById('tagsRow').classList.toggle('hidden',isTransfer);
   document.getElementById('txCat').required=!isTransfer;
   document.getElementById('saveLbl').textContent=isTransfer?'Conferma Trasferimento':'Salva Movimento';
-  if(t==='income') document.getElementById('txCat').value='salary';
+  if(t==='income'){
+    document.getElementById('txCat').value='salary';
+    setTimeout(()=>renderCatPicker('catPickWrap','txCat'),30);
+  }
+  if(!isTransfer){
+    // refresh account picker to correct selection
+    const curAcc=document.getElementById('txAcc')?.value;
+    renderAccPicker('accPickWrap','txAcc', curAcc);
+  } else {
+    renderAccPicker('accFromWrap','txAccFrom');
+    renderAccPicker('accToWrap','txAccTo');
+  }
   lucide.createIcons();
 }
 
@@ -1924,9 +2161,17 @@ function editTx(id){
   if(t.type==='transfer'){
     document.getElementById('txAccFrom').value = t.account||CFG.wallets[0];
     document.getElementById('txAccTo').value   = t.account_to||(CFG.wallets[1]||CFG.wallets[0]);
+    setTimeout(()=>{
+      renderAccPicker('accFromWrap','txAccFrom', t.account);
+      renderAccPicker('accToWrap','txAccTo', t.account_to);
+    },50);
   } else {
-    if(t.category_id) document.getElementById('txCat').value = t.category_id;
+    if(t.category_id){
+      document.getElementById('txCat').value = t.category_id;
+      setTimeout(()=>{ renderCatPicker('catPickWrap','txCat'); },50);
+    }
     document.getElementById('txAcc').value = t.account||CFG.wallets[0];
+    setTimeout(()=>renderAccPicker('accPickWrap','txAcc', t.account),50);
     const savedTags = t.tags ? (typeof t.tags==='string'?JSON.parse(t.tags):t.tags) : [];
     document.querySelectorAll('.tbtn').forEach(b=>b.classList.toggle('on', savedTags.includes(b.dataset.tag)));
   }
@@ -1937,17 +2182,102 @@ function editTx(id){
    POPULATE WALLET SELECT
 ============================================================ */
 function populateWalletSel(){
-  const wallets=CFG._accounts?.map(a=>a.name)||CFG.wallets||['Principale'];
+  const accounts=CFG._accounts?.length ? CFG._accounts : (CFG.wallets||['Principale']).map(w=>({id:w,name:w,color:'var(--br)',icon:'wallet'}));
+  const wallets=accounts.map(a=>a.name);
   const opts = wallets.map(w=>`<option value="${w}">${w}</option>`).join('');
+  // Update hidden selects
   ['txAcc','txAccFrom','txAccTo'].forEach(id=>{
     const el=document.getElementById(id);
     if(el){ el.innerHTML=opts; }
   });
-  if(wallets.length>1) { const el=document.getElementById('txAccTo'); if(el) el.value=wallets[1]; }
+  if(wallets.length>1){ const el=document.getElementById('txAccTo'); if(el) el.value=wallets[1]; }
   const mapAccDef=document.getElementById('mapAccDef');
   if(mapAccDef) mapAccDef.innerHTML=opts;
-  const defW = document.getElementById('defWalletS');
+  const defW=document.getElementById('defWalletS');
   if(defW){ defW.innerHTML=opts; defW.value=CFG.defaultWallet||wallets[0]; }
+  // Render visual pill pickers
+  renderAccPicker('accPickWrap','txAcc', accounts[0]?.name);
+  renderAccPicker('accFromWrap','txAccFrom', accounts[0]?.name);
+  renderAccPicker('accToWrap','txAccTo', accounts.length>1?accounts[1]?.name:accounts[0]?.name);
+  // Render category pills
+  renderCatPicker('catPickWrap','txCat');
+  // Render icon picker for add wallet form
+  renderIconPicker();
+}
+
+function renderAccPicker(wrapperId, selectId, defaultVal){
+  const wrap=document.getElementById(wrapperId); if(!wrap) return;
+  const accounts=CFG._accounts?.length ? CFG._accounts : (CFG.wallets||['Principale']).map(w=>({id:w,name:w,color:'var(--br)',icon:'wallet'}));
+  const curVal=document.getElementById(selectId)?.value||defaultVal||accounts[0]?.name;
+  wrap.innerHTML=accounts.map(acc=>{
+    const brand=detectBrand(acc.name);
+    const iconHtml=brand
+      ? `<div class="ap-icon ft-badge" style="background:${FINTECH_BRANDS[brand].bg};font-size:10px">${FINTECH_BRANDS[brand].text}</div>`
+      : `<div class="ap-icon" style="background:${acc.color}22"><i data-lucide="${acc.icon||'wallet'}" style="width:13px;height:13px;color:${acc.color}"></i></div>`;
+    const isOn=acc.name===curVal;
+    return `<div class="acc-pill ${isOn?'on':''}" onclick="selectAccPill('${wrapperId}','${selectId}','${acc.name}',this)">${iconHtml}<span>${acc.name}</span></div>`;
+  }).join('');
+  lucide.createIcons({scope:wrap});
+}
+
+function selectAccPill(wrapperId, selectId, name, el){
+  const wrap=document.getElementById(wrapperId);
+  wrap?.querySelectorAll('.acc-pill').forEach(p=>p.classList.remove('on'));
+  el?.classList.add('on');
+  const sel=document.getElementById(selectId);
+  if(sel) sel.value=name;
+}
+
+function renderCatPicker(wrapperId, selectId){
+  const wrap=document.getElementById(wrapperId); if(!wrap) return;
+  const curVal=document.getElementById(selectId)?.value||'other';
+  wrap.innerHTML=Object.entries(CATS).map(([k,c])=>{
+    const emoji=CAT_EMOJI[k]||'🏷';
+    const isOn=k===curVal;
+    return `<div class="cat-pill ${isOn?'on':''}" onclick="selectCatPill('${wrapperId}','${selectId}','${k}',this)">
+      <div class="cp-icon" style="background:${c.bg}">${emoji}</div>
+      <span>${c.l}</span>
+    </div>`;
+  }).join('');
+}
+
+function selectCatPill(wrapperId, selectId, key, el){
+  const wrap=document.getElementById(wrapperId);
+  wrap?.querySelectorAll('.cat-pill').forEach(p=>p.classList.remove('on'));
+  el?.classList.add('on');
+  const sel=document.getElementById(selectId);
+  if(sel) sel.value=key;
+}
+
+function renderIconPicker(){
+  const grid=document.getElementById('iconPickGrid'); if(!grid) return;
+  const curIcon=document.getElementById('nWalletIcon')?.value||'credit-card';
+  let html='';
+  // Fintech brands section
+  html+=`<div style="grid-column:1/-1;font-size:8px;font-weight:800;color:var(--br);text-transform:uppercase;letter-spacing:.06em;padding:2px 0 4px">Fintech</div>`;
+  Object.entries(FINTECH_BRANDS).forEach(([key,b])=>{
+    html+=`<button type="button" class="icon-pick-btn ${curIcon==='ft:'+key?'selected':''}" onclick="selectAccIcon('ft:${key}',this)" title="${b.label}">
+      <div class="icon-preview ft-badge" style="background:${b.bg};font-size:10px">${b.text}</div>
+      <span>${b.label.split(' ')[0]}</span>
+    </button>`;
+  });
+  // Generic icons section
+  html+=`<div style="grid-column:1/-1;font-size:8px;font-weight:800;color:var(--t2);text-transform:uppercase;letter-spacing:.06em;padding:6px 0 4px">Generici</div>`;
+  GENERIC_ACC_ICONS.forEach(({ic,label})=>{
+    html+=`<button type="button" class="icon-pick-btn ${curIcon===ic?'selected':''}" onclick="selectAccIcon('${ic}',this)" title="${label}">
+      <div class="icon-preview" style="background:var(--bg2)"><i data-lucide="${ic}" style="width:14px;height:14px;color:var(--t2)"></i></div>
+      <span>${label}</span>
+    </button>`;
+  });
+  grid.innerHTML=html;
+  lucide.createIcons({scope:grid});
+}
+
+function selectAccIcon(icon, el){
+  document.getElementById('iconPickGrid')?.querySelectorAll('.icon-pick-btn').forEach(b=>b.classList.remove('selected'));
+  el?.classList.add('selected');
+  const inp=document.getElementById('nWalletIcon');
+  if(inp) inp.value=icon;
 }
 
 /* ============================================================
@@ -2175,6 +2505,9 @@ function txItems(txs, actions=false){
     const sign   = t.type==='expense'?'−':t.type==='income'?'+':'⇄';
     const dStr   = new Date(t.date+'T12:00').toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
     const acc    = t.account||CFG.wallets[0];
+    const accObj = CFG._accounts?.find(a=>a.name===acc);
+    const brand  = detectBrand(acc);
+    const accBadge = brand ? `<span class="ft-badge" style="width:14px;height:14px;border-radius:4px;background:${FINTECH_BRANDS[brand].bg};font-size:6px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;margin-right:2px;vertical-align:middle;flex-shrink:0">${FINTECH_BRANDS[brand].text}</span>` : '';
     const title  = t.description || c.l;
     const subCat = t.description ? c.l : '';
     const subAcc = isTransfer ? `${acc} → ${t.account_to||'?'}` : acc;
@@ -2200,7 +2533,7 @@ function txItems(txs, actions=false){
         </div>
         <div class="flex-1 min-w-0">
           <p class="font-semibold text-sm leading-tight truncate">${title}</p>
-          <p class="text-[10px] mt-0.5 truncate" style="color:var(--t2)">${subtitle}</p>
+          <p class="text-[10px] mt-0.5 truncate flex items-center" style="color:var(--t2)">${accBadge}${subtitle}</p>
           ${tags?`<div class="flex gap-1 mt-1 flex-wrap">${tags}</div>`:''}
         </div>
         <p class="font-black text-sm whitespace-nowrap" style="color:${amtCol};font-variant-numeric:tabular-nums">${sign}${fmt(t.amount)}</p>
@@ -2267,14 +2600,35 @@ function renderWallets(wB, totalNet){
       <p class="text-[9px] font-bold uppercase tracking-wider mb-2" style="color:var(--t2)"><i data-lucide="layout-grid" class="w-3 h-3 inline mr-1"></i>Tutti</p>
       <p class="text-xl font-black" style="font-variant-numeric:tabular-nums;color:${totalNet<0?'var(--bd)':'var(--t)'}">${fmtShort(totalNet)}</p>
     </div>`+accounts.map(acc=>{
-      const bal=(wB[acc.name]||0)+(acc.initialBalance||0);
+      const bal=wB[acc.name]??0;
       return `<div onclick="filterWallet('${acc.name}')" class="wc flex-shrink-0 w-36 card p-4 border cursor-pointer" style="border-color:${S.wFilter===acc.name?acc.color:'var(--bo)'}">
         <p class="text-[9px] font-bold uppercase tracking-wider mb-2 truncate" style="color:${acc.color}">
           <i data-lucide="${acc.icon||'wallet'}" class="w-3 h-3 inline mr-1"></i>${acc.name}
         </p>
         <p class="text-xl font-black" style="font-variant-numeric:tabular-nums;color:${bal<0?'var(--bd)':'var(--t)'}">${fmtShort(bal)}</p>
       </div>`;
-    }).join('');
+    }).join('')+'';
+  // brand icons for wallets
+  el.innerHTML = el.innerHTML; // refresh handled below
+  const accounts2=CFG._accounts?.length ? CFG._accounts : (CFG.wallets||[]).map(w=>({name:w,color:'var(--br)',icon:'wallet',initialBalance:0}));
+  // Re-render with brand icons
+  const existing = el.children;
+  Array.from(existing).slice(1).forEach((card,i)=>{
+    const acc=accounts2[i]; if(!acc) return;
+    const brand=detectBrand(acc.name);
+    if(brand){
+      const p=card.querySelector('p');
+      if(p && !p.querySelector('.ft-badge')){
+        const badge=document.createElement('span');
+        badge.className='ft-badge';
+        badge.style.cssText=`width:16px;height:16px;border-radius:4px;background:${FINTECH_BRANDS[brand].bg};font-size:7px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;margin-right:4px;vertical-align:middle`;
+        badge.textContent=FINTECH_BRANDS[brand].text;
+        p.insertBefore(badge, p.firstChild);
+        const oldIcon=p.querySelector('i[data-lucide]');
+        if(oldIcon) oldIcon.remove();
+      }
+    }
+  });
   lucide.createIcons();
 }
 function filterWallet(w){ haptic(); S.wFilter=w; updateDash(); renderList(); }
@@ -2539,19 +2893,32 @@ function renderWalletSettings(){
   const el=document.getElementById('wList'); if(!el) return;
   if(!CFG._accounts?.length){ el.innerHTML='<p class="text-xs py-2" style="color:var(--t2)">Nessun conto</p>'; return; }
   const typeLabel={checking:'Corrente',savings:'Risparmi',cash:'Contanti',credit:'Credito',invest:'Investimenti'};
-  el.innerHTML=CFG._accounts.map(acc=>`
-    <div class="flex items-center gap-2 py-2 px-3 rounded-2xl" style="background:var(--bg2)">
-      <div class="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style="background:${acc.color}22">
-        <i data-lucide="${acc.icon||'wallet'}" class="w-3.5 h-3.5" style="color:${acc.color}"></i>
-      </div>
+  el.innerHTML=CFG._accounts.map(acc=>{
+    const brand=detectBrand(acc.name);
+    const iconEl=brand
+      ? `<div class="ft-badge" style="width:32px;height:32px;border-radius:10px;background:${FINTECH_BRANDS[brand].bg};font-size:11px">${FINTECH_BRANDS[brand].text}</div>`
+      : `<div style="width:32px;height:32px;border-radius:10px;background:${acc.color}22;display:flex;align-items:center;justify-content:center"><i data-lucide="${acc.icon||'wallet'}" style="width:14px;height:14px;color:${acc.color}"></i></div>`;
+    const bal=acc.currentBalance??DBS.computeBalance(acc.name);
+    return `<div class="flex items-center gap-2 py-2 px-3 rounded-2xl" style="background:var(--bg2)">
+      ${iconEl}
       <div class="flex-1 min-w-0">
         <p class="text-xs font-bold truncate">${acc.name}</p>
-        <p class="text-[9px]" style="color:var(--t2)">${typeLabel[acc.type]||acc.type} · saldo iniziale ${fmt(acc.initialBalance||0)}</p>
+        <p class="text-[9px]" style="color:var(--t2)">${typeLabel[acc.type]||acc.type}${brand?' · '+FINTECH_BRANDS[brand].label:''}</p>
+        <p class="text-xs font-black" style="color:${bal<0?'var(--bd)':'var(--ok)'};font-variant-numeric:tabular-nums">${fmt(bal)}</p>
       </div>
-      <input type="text" value="${acc.name}" onchange="renameWallet('${acc.id}',this.value,'${acc.name}')" class="inp w-24 py-1 text-xs text-right" placeholder="Rinomina">
+      <input type="text" value="${acc.name}" onchange="renameWallet('${acc.id}',this.value,'${acc.name}')" class="inp w-20 py-1 text-xs text-right" placeholder="Rinomina">
       <button onclick="removeWallet('${acc.id}')" class="p-1.5 rounded-xl flex-shrink-0" style="background:rgba(255,59,92,.1);color:var(--bd)"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   lucide.createIcons();
+}
+
+async function recalcAllBalances(){
+  toast('Ricalcolo saldi...','info');
+  await DBS.updateAllBalances();
+  renderWalletSettings();
+  renderAll();
+  toast('Saldi aggiornati ✓','success');
 }
 async function addWallet(){
   const n=document.getElementById('nWallet')?.value.trim();
@@ -2560,7 +2927,8 @@ async function addWallet(){
   const type=document.getElementById('nWalletType')?.value||'checking';
   const bal=parseFloat(document.getElementById('nWalletBal')?.value)||0;
   const color=_ACC_COLORS[_accColorIdx%_ACC_COLORS.length];
-  const icon={checking:'credit-card',savings:'piggy-bank',cash:'banknote',credit:'credit-card',invest:'trending-up'}[type]||'wallet';
+  const selectedIcon=document.getElementById('nWalletIcon')?.value||'wallet';
+  const icon=selectedIcon||({checking:'credit-card',savings:'piggy-bank',cash:'banknote',credit:'credit-card',invest:'trending-up'}[type]||'wallet');
   const acc={id:'lac'+Date.now(),name:n,type,color,icon,initialBalance:bal};
   document.getElementById('nWallet').value='';
   if(document.getElementById('nWalletBal')) document.getElementById('nWalletBal').value='';
