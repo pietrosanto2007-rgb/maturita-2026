@@ -4,8 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#090a0f">
-<title>Live Voice · Neural P2P</title>
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<title>Live Voice · MQTT Neural Engine</title>
+<!-- Libreria MQTT via WebSockets per connessioni instantanee senza blocchi P2P -->
+<script src="https://unpkg.com/mqtt@5.3.4/dist/mqtt.min.js"></script>
 <style>
 :root {
   --bg: #090a0f;
@@ -328,7 +329,7 @@ button.danger {
   <nav class="nav">
     <div class="brand">
       <div class="brand-icon">🔊</div>
-      <span>Live Voice Neural</span>
+      <span>Live Voice WebSocket</span>
     </div>
     <div class="live-badge">
       <span id="statusDot" class="status-dot"></span>
@@ -337,9 +338,9 @@ button.danger {
   </nav>
 
   <section id="homeView" class="card hero">
-    <span class="hero-tag">P2P Audio Synchronization</span>
+    <span class="hero-tag">Realtime WebSockets Relay</span>
     <h1>Una stanza.<br>Una voce naturale.</h1>
-    <p class="sub">Scrivi messaggi sincronizzati in diretta con sintesi vocale neurale avanzata.</p>
+    <p class="sub">Connessione istantanea ultra-stabile tramite broker Cloud WebSocket.</p>
     
     <div class="form-grid">
       <div class="field-group">
@@ -396,7 +397,6 @@ button.danger {
       </div>
     </div>
 
-    <!-- Regolazione Voce Avanzata -->
     <div class="card" style="margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
       <div>
         <label class="field-label" for="voiceSelect">Voce AI / Neurale</label>
@@ -413,7 +413,6 @@ button.danger {
     </div>
   </section>
 
-  <!-- Modal Moderazione -->
   <div id="modalOverlay" class="modal-overlay">
     <div class="modal-sheet">
       <div class="modal-header">
@@ -433,25 +432,17 @@ button.danger {
 </main>
 
 <script>
-// Server STUN di Google per attraversare NAT e Firewall senza blocchi di connessione
-const PEER_CONFIG = {
-  debug: 1,
-  config: {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' }
-    ]
-  }
-};
+// Broker WebSocket MQTT pubblico, rapido e sicuro
+const BROKER_WS = 'wss://broker.emqx.io:8084/mqtt';
 
 const state = {
-  peer: null,
+  client: null,
+  myId: 'usr_' + Math.random().toString(36).substring(2, 9),
   roomId: '',
+  roomTopic: '',
   myName: 'Ospite',
   isHost: false,
-  hostConn: null,
-  peers: new Map(),
+  participants: new Map(), // id -> { name, isHost, lastSeen }
   queue: [],
   speaking: false,
   voices: [],
@@ -484,7 +475,7 @@ const el = {
   btnToggleMute: $('btnToggleMute')
 };
 
-// --- VOICE & SYNTHESIS ENGINE ---
+// --- SYNTHESIS VOCALE ---
 function unlockAudio() {
   if (state.audioUnlocked) return;
   if ('speechSynthesis' in window) {
@@ -501,7 +492,6 @@ function initVoices() {
   let italian = all.filter(v => /^it/i.test(v.lang));
   let pool = italian.length ? italian : all;
 
-  // Priorità alle voci Naturali/Neurali/Google/Microsoft per un suono umano
   pool.sort((a, b) => {
     const keywords = ['natural', 'neural', 'google', 'online', 'premium', 'enhanced', 'microsoft'];
     const scoreA = keywords.reduce((s, k) => s + (a.name.toLowerCase().includes(k) ? 2 : 0), 0);
@@ -572,118 +562,98 @@ function updateQueueUI() {
   el.queueCounter.textContent = `${state.queue.length} messagg${state.queue.length === 1 ? 'o' : 'i'}`;
 }
 
-// --- PEERJS P2P ENGINE ---
+// --- MQTT WEBSOCKET ENGINE ---
 function generateRoomCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-function getPeopleList() {
-  const list = [{ id: state.peer?.id || 'me', name: state.myName, isHost: state.isHost }];
-  for (const [id, data] of state.peers) {
-    list.push({ id, name: data.name, isHost: false });
-  }
-  return list;
+function connectMQTT(roomCode, isCreating) {
+  state.roomId = roomCode.toUpperCase();
+  state.isHost = isCreating;
+  state.myName = el.userName.value.trim() || (isCreating ? 'Host' : 'Ospite');
+  state.roomTopic = `livevoice/v5/room/${state.roomId}`;
+
+  updateStatus('Connessione al Cloud...', false);
+
+  state.client = mqtt.connect(BROKER_WS, {
+    clientId: state.myId,
+    keepalive: 15,
+    clean: true
+  });
+
+  state.client.on('connect', () => {
+    updateStatus('Connesso', true);
+    state.client.subscribe(state.roomTopic, { qos: 0 });
+
+    // Annuncia la presenza a tutti
+    publishPayload({
+      t: 'ping',
+      senderId: state.myId,
+      name: state.myName,
+      isHost: state.isHost
+    });
+
+    enterRoomUI();
+  });
+
+  state.client.on('message', (topic, message) => {
+    try {
+      const data = JSON.parse(message.toString());
+      handleIncomingMessage(data);
+    } catch (e) {}
+  });
+
+  state.client.on('error', () => updateStatus('Errore di Connessione', false));
+  state.client.on('close', () => updateStatus('Disconnesso', false));
+
+  // Heartbeat per mantenere la lista persone attiva
+  setInterval(() => {
+    if (state.client && state.client.connected) {
+      publishPayload({ t: 'ping', senderId: state.myId, name: state.myName, isHost: state.isHost });
+    }
+    cleanInactiveUsers();
+  }, 4000);
 }
 
-function broadcast(data, exceptId = null) {
-  for (const [id, record] of state.peers) {
-    if (id !== exceptId && record.conn && record.conn.open) {
-      record.conn.send(data);
+function publishPayload(obj) {
+  if (state.client && state.client.connected) {
+    state.client.publish(state.roomTopic, JSON.stringify(obj));
+  }
+}
+
+function handleIncomingMessage(d) {
+  if (d.senderId === state.myId) return; // Ignora i propri pacchetti riemessi
+
+  if (d.t === 'ping') {
+    state.participants.set(d.senderId, { name: d.name, isHost: d.isHost, lastSeen: Date.now() });
+    renderPeople();
+  }
+
+  if (d.t === 'msg') {
+    appendMessage(d.name, d.text, false);
+    enqueueAudio(d.text);
+  }
+
+  if (d.t === 'mute_state') {
+    state.muted = d.value;
+  }
+
+  if (d.t === 'kick' && d.targetId === state.myId) {
+    alert('Sei stato rimosso dall\'host.');
+    window.location.reload();
+  }
+}
+
+function cleanInactiveUsers() {
+  const now = Date.now();
+  let changed = false;
+  for (const [id, user] of state.participants) {
+    if (now - user.lastSeen > 10000) {
+      state.participants.delete(id);
+      changed = true;
     }
   }
-}
-
-function initHost() {
-  state.isHost = true;
-  state.roomId = generateRoomCode();
-  state.myName = el.userName.value.trim() || 'Host';
-
-  updateStatus('Creazione stanza...', false);
-  state.peer = new Peer(`live-voice-v4-${state.roomId.toLowerCase()}`, PEER_CONFIG);
-
-  state.peer.on('open', () => enterRoomUI());
-
-  state.peer.on('connection', conn => {
-    conn.on('open', () => {
-      conn.on('data', data => {
-        if (data.t === 'join') {
-          state.peers.set(conn.peer, { conn, name: data.name });
-          conn.send({
-            t: 'welcome',
-            muted: state.muted,
-            people: getPeopleList()
-          });
-          renderPeople();
-          broadcast({ t: 'people', people: getPeopleList() }, conn.peer);
-        }
-
-        if (data.t === 'msg') {
-          if (state.muted) {
-            conn.send({ t: 'rejected', reason: 'La stanza è bloccata dall\'host.' });
-            return;
-          }
-          appendMessage(data.name, data.text, false);
-          enqueueAudio(data.text);
-          broadcast(data, conn.peer);
-        }
-      });
-    });
-
-    conn.on('close', () => {
-      state.peers.delete(conn.peer);
-      renderPeople();
-      broadcast({ t: 'people', people: getPeopleList() });
-    });
-  });
-
-  state.peer.on('error', err => updateStatus('Errore P2P Host: ' + err.type, false));
-}
-
-function initGuest(code) {
-  state.isHost = false;
-  state.roomId = code.toUpperCase();
-  state.myName = el.userName.value.trim() || 'Ospite';
-
-  updateStatus('Connessione in corso...', false);
-  state.peer = new Peer(PEER_CONFIG);
-
-  state.peer.on('open', () => {
-    const targetPeerId = `live-voice-v4-${state.roomId.toLowerCase()}`;
-    state.hostConn = state.peer.connect(targetPeerId, { reliable: true });
-
-    state.hostConn.on('open', () => {
-      state.hostConn.send({ t: 'join', name: state.myName });
-      enterRoomUI();
-    });
-
-    state.hostConn.on('data', data => {
-      if (data.t === 'welcome') {
-        state.muted = data.muted;
-        renderPeopleList(data.people);
-        updateStatus('Connesso', true);
-      }
-      if (data.t === 'people') renderPeopleList(data.people);
-      if (data.t === 'msg') {
-        appendMessage(data.name, data.text, false);
-        enqueueAudio(data.text);
-      }
-      if (data.t === 'rejected') alert(data.reason);
-      if (data.t === 'kicked') {
-        alert('Sei stato rimosso dall\'host.');
-        window.location.reload();
-      }
-    });
-
-    state.hostConn.on('close', () => {
-      updateStatus('Disconnesso dall\'host', false);
-    });
-
-    state.hostConn.on('error', () => updateStatus('Errore connessione', false));
-  });
-
-  state.peer.on('error', err => {
-    updateStatus('Stanza non trovata o offline', false);
-  });
+  if (changed) renderPeople();
 }
 
 // --- UI HELPERS ---
@@ -697,7 +667,6 @@ function enterRoomUI() {
   el.homeView.classList.add('hidden');
   el.roomView.classList.remove('hidden');
   el.displayRoomCode.textContent = state.roomId;
-  updateStatus(state.isHost ? 'Online (Host)' : 'Connesso', true);
 
   const url = new URL(window.location.href);
   url.searchParams.set('room', state.roomId);
@@ -707,52 +676,48 @@ function enterRoomUI() {
 }
 
 function renderPeople() {
-  renderPeopleList(getPeopleList());
-  renderModerationList();
-}
+  const list = [{ id: state.myId, name: state.myName, isHost: state.isHost }];
+  for (const [id, u] of state.participants) {
+    list.push({ id, name: u.name, isHost: u.isHost });
+  }
 
-function renderPeopleList(list) {
   el.peopleList.innerHTML = list.map(p => `
     <span class="person-chip ${p.isHost ? 'host' : ''}">
       ${p.isHost ? '👑' : '🟢'} ${escapeHTML(p.name)}
     </span>
   `).join('');
+
+  renderModerationList(list);
 }
 
-function renderModerationList() {
+function renderModerationList(list) {
   if (!state.isHost) return;
-  const list = getPeopleList().filter(p => !p.isHost);
-  
-  if (list.length === 0) {
-    el.moderationList.innerHTML = '<div style="font-size:12px; color:var(--text-muted)">Nessun utente da gestire.</div>';
+  const others = list.filter(p => p.id !== state.myId);
+
+  if (others.length === 0) {
+    el.moderationList.innerHTML = '<div style="font-size:12px; color:var(--text-muted)">Nessun utente connesso.</div>';
     return;
   }
 
   el.moderationList.innerHTML = '';
-  list.forEach(p => {
+  others.forEach(p => {
     const item = document.createElement('div');
     item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.2); padding:8px 12px; border-radius:10px;';
     item.innerHTML = `<span>${escapeHTML(p.name)}</span>`;
-    
+
     const kickBtn = document.createElement('button');
     kickBtn.className = 'danger';
     kickBtn.style.padding = '6px 10px';
-    kickBtn.textContent = 'Rimuovi';
-    kickBtn.onclick = () => removeParticipant(p.id);
+    kickBtn.textContent = 'Espelli';
+    kickBtn.onclick = () => {
+      publishPayload({ t: 'kick', targetId: p.id });
+      state.participants.delete(p.id);
+      renderPeople();
+    };
 
     item.appendChild(kickBtn);
     el.moderationList.appendChild(item);
   });
-}
-
-function removeParticipant(peerId) {
-  const target = state.peers.get(peerId);
-  if (target && target.conn) {
-    target.conn.send({ t: 'kicked' });
-    target.conn.close();
-    state.peers.delete(peerId);
-    renderPeople();
-  }
 }
 
 function appendMessage(name, text, isMe) {
@@ -775,21 +740,20 @@ function sendMessage() {
   if (!text) return;
 
   if (state.muted && !state.isHost) {
-    alert('La stanza è bloccata dall\'host.');
+    alert('La stanza è stata silenziata dall\'host.');
     return;
   }
-
-  const payload = { t: 'msg', name: state.myName, text };
 
   appendMessage(state.myName, text, true);
   enqueueAudio(text);
   el.messageInput.value = '';
 
-  if (state.isHost) {
-    broadcast(payload);
-  } else if (state.hostConn && state.hostConn.open) {
-    state.hostConn.send(payload);
-  }
+  publishPayload({
+    t: 'msg',
+    senderId: state.myId,
+    name: state.myName,
+    text: text
+  });
 }
 
 function escapeHTML(str) {
@@ -799,12 +763,12 @@ function escapeHTML(str) {
 }
 
 // --- EVENT HANDLERS ---
-$('btnCreate').onclick = () => initHost();
+$('btnCreate').onclick = () => connectMQTT(generateRoomCode(), true);
 
 $('btnJoin').onclick = () => {
   const code = el.roomCodeInput.value.trim() || new URLSearchParams(window.location.search).get('room');
   if (!code) { el.roomCodeInput.focus(); return; }
-  initGuest(code);
+  connectMQTT(code, false);
 };
 
 $('btnSend').onclick = sendMessage;
@@ -816,9 +780,9 @@ el.pitchInput.oninput = e => el.pitchLabel.textContent = `${parseFloat(e.target.
 $('btnShare').onclick = () => {
   const shareUrl = window.location.href;
   if (navigator.share) {
-    navigator.share({ title: 'Live Voice Neural', text: 'Entra nella mia stanza!', url: shareUrl }).catch(() => {});
+    navigator.share({ title: 'Live Voice Cloud', text: 'Entra nella mia stanza!', url: shareUrl }).catch(() => {});
   } else {
-    navigator.clipboard.writeText(shareUrl).then(() => alert('Link copiato negli appunti!'));
+    navigator.clipboard.writeText(shareUrl).then(() => alert('Link di invito copiato!'));
   }
 };
 
@@ -842,8 +806,8 @@ $('btnClearQueue').onclick = () => {
 
 el.btnToggleMute.onclick = () => {
   state.muted = !state.muted;
-  el.btnToggleMute.textContent = state.muted ? '🔓 Sblocca Messaggi Client' : '🔒 Blocca Messaggi Client';
-  broadcast({ t: 'muted', value: state.muted });
+  el.btnToggleMute.textContent = state.muted ? '🔓 Sblocca Messaggi' : '🔒 Blocco Messaggi Client';
+  publishPayload({ t: 'mute_state', value: state.muted });
 };
 
 window.addEventListener('DOMContentLoaded', () => {
