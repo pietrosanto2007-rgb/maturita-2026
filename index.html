@@ -4,15 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#090a0f">
-<title>Live Voice · NextGen</title>
+<title>Live Voice · Neural P2P</title>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
 :root {
   --bg: #090a0f;
-  --card: rgba(18, 22, 33, 0.75);
+  --card: rgba(18, 22, 33, 0.85);
   --card-border: rgba(255, 255, 255, 0.08);
   --accent: #6366f1;
-  --accent-glow: rgba(99, 102, 241, 0.35);
+  --accent-glow: rgba(99, 102, 241, 0.4);
   --accent-hover: #4f46e5;
   --success: #10b981;
   --danger: #f43f5e;
@@ -32,10 +32,9 @@ body {
   display: flex;
   justify-content: center;
   background-image: 
-    radial-gradient(circle at 50% -20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 40%);
+    radial-gradient(circle at 50% -20%, rgba(99, 102, 241, 0.18) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.06) 0%, transparent 40%);
   background-attachment: fixed;
-  overflow-x: hidden;
 }
 
 .app {
@@ -46,13 +45,11 @@ body {
   gap: 16px;
 }
 
-/* Header & Navbar */
 .nav {
   height: 52px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 4px;
 }
 .brand {
   font-weight: 800;
@@ -96,7 +93,6 @@ body {
   box-shadow: 0 0 10px var(--success);
 }
 
-/* Glass Card Component */
 .card {
   background: var(--card);
   border: 1px solid var(--card-border);
@@ -107,7 +103,6 @@ body {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
-/* Hero Section */
 .hero { text-align: center; padding: 40px 20px; }
 .hero-tag {
   display: inline-block;
@@ -136,7 +131,6 @@ h1 {
   margin: 0 auto 30px;
 }
 
-/* Form Controls */
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -171,7 +165,6 @@ input:focus, select:focus {
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
-/* Buttons */
 .btn-group {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -210,10 +203,8 @@ button.danger {
   color: var(--danger);
   border: 1px solid rgba(244, 63, 94, 0.2);
 }
-button.danger:hover { background: rgba(244, 63, 94, 0.25); }
 .icon-btn { padding: 10px 14px; border-radius: 12px; }
 
-/* Dashboard Room UI */
 .room-header {
   display: flex;
   justify-content: space-between;
@@ -243,7 +234,6 @@ button.danger:hover { background: rgba(244, 63, 94, 0.25); }
 }
 .person-chip.host { border-color: rgba(234, 179, 8, 0.4); background: rgba(234, 179, 8, 0.08); }
 
-/* Audio Wave Visualizer */
 .voice-indicator {
   display: flex;
   align-items: center;
@@ -271,9 +261,8 @@ button.danger:hover { background: rgba(244, 63, 94, 0.25); }
 .speaking .eq-bar:nth-child(3) { animation-delay: 0.2s; }
 @keyframes bounce { 0% { height: 4px; } 100% { height: 16px; } }
 
-/* Messages & Chat */
 .messages-container {
-  height: 48vh;
+  height: 46vh;
   min-height: 280px;
   overflow-y: auto;
   display: flex;
@@ -289,7 +278,6 @@ button.danger:hover { background: rgba(244, 63, 94, 0.25); }
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--card-border);
   align-self: flex-start;
-  animation: fadeIn 0.2s ease;
 }
 .msg.me {
   align-self: flex-end;
@@ -300,11 +288,9 @@ button.danger:hover { background: rgba(244, 63, 94, 0.25); }
 .msg-meta { font-size: 11px; font-weight: 700; opacity: 0.7; margin-bottom: 4px; }
 .msg-body { font-size: 14px; line-height: 1.45; word-break: break-word; }
 
-/* Composer */
 .composer { display: flex; gap: 10px; }
 .composer input { flex: 1; }
 
-/* Modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -329,24 +315,20 @@ button.danger:hover { background: rgba(244, 63, 94, 0.25); }
 }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 
-/* Utilities */
 .hidden { display: none !important; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-
 @media (max-width: 640px) {
   .form-grid, .btn-group { grid-template-columns: 1fr; }
-  .messages-container { height: 42vh; }
+  .messages-container { height: 40vh; }
 }
 </style>
 </head>
 <body>
 
 <main class="app">
-  <!-- Nav Header -->
   <nav class="nav">
     <div class="brand">
       <div class="brand-icon">🔊</div>
-      <span>Live Voice</span>
+      <span>Live Voice Neural</span>
     </div>
     <div class="live-badge">
       <span id="statusDot" class="status-dot"></span>
@@ -354,11 +336,10 @@ button.danger:hover { background: rgba(244, 63, 94, 0.25); }
     </div>
   </nav>
 
-  <!-- Hero / Join View -->
   <section id="homeView" class="card hero">
-    <span class="hero-tag">Sintesi Vocale P2P Sync</span>
-    <h1>Una stanza.<br>Una sola voce.</h1>
-    <p class="sub">Scrivi un messaggio e verrà letto ad alta voce a tutti i partecipanti contemporaneamente in tempo reale.</p>
+    <span class="hero-tag">P2P Audio Synchronization</span>
+    <h1>Una stanza.<br>Una voce naturale.</h1>
+    <p class="sub">Scrivi messaggi sincronizzati in diretta con sintesi vocale neurale avanzata.</p>
     
     <div class="form-grid">
       <div class="field-group">
@@ -377,13 +358,11 @@ button.danger:hover { background: rgba(244, 63, 94, 0.25); }
     </div>
   </section>
 
-  <!-- Active Room View -->
   <section id="roomView" class="hidden">
-    <!-- Room Info Card -->
     <div class="card" style="padding: 18px 24px;">
       <div class="room-header">
         <div>
-          <span class="hero-tag" style="margin: 0;">Stanza Attiva</span>
+          <span class="hero-tag" style="margin: 0;">Stanza Live</span>
           <div class="room-title" id="displayRoomCode">------</div>
         </div>
         <div style="display: flex; gap: 8px;">
@@ -394,7 +373,6 @@ button.danger:hover { background: rgba(244, 63, 94, 0.25); }
       <div class="people-bar" id="peopleList"></div>
     </div>
 
-    <!-- Chat & Audio Player Card -->
     <div class="card" style="margin-top: 14px;">
       <div class="voice-indicator" id="voiceIndicator">
         <div style="display: flex; align-items: center; gap: 10px;">
@@ -408,7 +386,7 @@ button.danger:hover { background: rgba(244, 63, 94, 0.25); }
 
       <div class="messages-container" id="messagesBox">
         <div id="emptyState" style="margin: auto; text-align: center; color: var(--text-muted); font-size: 14px;">
-          Nessun messaggio ancora.<br>Invia un testo per farlo pronunciare dalla stanza!
+          Nessun messaggio. Scrivi per attivare la lettura vocale!
         </div>
       </div>
 
@@ -418,35 +396,36 @@ button.danger:hover { background: rgba(244, 63, 94, 0.25); }
       </div>
     </div>
 
-    <!-- Audio Settings -->
-    <div class="card" style="margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+    <!-- Regolazione Voce Avanzata -->
+    <div class="card" style="margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
       <div>
-        <label class="field-label" for="voiceSelect">Voce Lettore</label>
+        <label class="field-label" for="voiceSelect">Voce AI / Neurale</label>
         <select id="voiceSelect"></select>
       </div>
       <div>
         <label class="field-label">Velocità (<span id="rateLabel">1.0×</span>)</label>
-        <input id="rateInput" type="range" min="0.7" max="1.4" step="0.05" value="1.0">
+        <input id="rateInput" type="range" min="0.75" max="1.3" step="0.05" value="1.0">
+      </div>
+      <div>
+        <label class="field-label">Tono / Pitch (<span id="pitchLabel">1.0</span>)</label>
+        <input id="pitchInput" type="range" min="0.8" max="1.2" step="0.05" value="1.0">
       </div>
     </div>
   </section>
 
-  <!-- Moderation Modal -->
+  <!-- Modal Moderazione -->
   <div id="modalOverlay" class="modal-overlay">
     <div class="modal-sheet">
       <div class="modal-header">
-        <h3 style="font-size: 18px; font-weight: 800;">👑 Controllo Stanza</h3>
+        <h3 style="font-size: 18px; font-weight: 800;">👑 Gestione Stanza</h3>
         <button id="btnCloseModal" class="secondary icon-btn" style="padding: 6px 12px;">✕</button>
       </div>
-      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
-        Controlla i permessi della stanza e la coda della sintesi vocale.
-      </p>
       <div style="display: flex; flex-direction: column; gap: 10px;">
         <button id="btnClearQueue" class="secondary" style="width: 100%;">🧹 Svuota Coda Audio</button>
         <button id="btnToggleMute" class="danger" style="width: 100%;">🔒 Blocca Messaggi Client</button>
       </div>
       <div style="margin-top: 20px;">
-        <span class="field-label">Partecipanti connessi</span>
+        <span class="field-label">Utenti Connessi</span>
         <div id="moderationList" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;"></div>
       </div>
     </div>
@@ -454,23 +433,33 @@ button.danger:hover { background: rgba(244, 63, 94, 0.25); }
 </main>
 
 <script>
-// --- STATE MANAGEMENT ---
+// Server STUN di Google per attraversare NAT e Firewall senza blocchi di connessione
+const PEER_CONFIG = {
+  debug: 1,
+  config: {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' }
+    ]
+  }
+};
+
 const state = {
   peer: null,
   roomId: '',
   myName: 'Ospite',
   isHost: false,
   hostConn: null,
-  peers: new Map(), // peerId -> { conn, name }
+  peers: new Map(),
   queue: [],
   speaking: false,
   voices: [],
   muted: false,
   audioUnlocked: false,
-  activeUtterance: null // Previene il bug di Garbage Collection nel Web Speech API
+  activeUtterance: null
 };
 
-// --- DOM ELEMENTS ---
 const $ = id => document.getElementById(id);
 const el = {
   statusDot: $('statusDot'),
@@ -488,12 +477,14 @@ const el = {
   voiceSelect: $('voiceSelect'),
   rateInput: $('rateInput'),
   rateLabel: $('rateLabel'),
+  pitchInput: $('pitchInput'),
+  pitchLabel: $('pitchLabel'),
   modalOverlay: $('modalOverlay'),
   moderationList: $('moderationList'),
   btnToggleMute: $('btnToggleMute')
 };
 
-// --- AUDIO ENGINE (TTS) ---
+// --- VOICE & SYNTHESIS ENGINE ---
 function unlockAudio() {
   if (state.audioUnlocked) return;
   if ('speechSynthesis' in window) {
@@ -506,13 +497,23 @@ document.addEventListener('click', unlockAudio, { once: true });
 
 function initVoices() {
   if (!('speechSynthesis' in window)) return;
-  let allVoices = speechSynthesis.getVoices();
-  state.voices = allVoices.filter(v => /^it/i.test(v.lang));
-  if (!state.voices.length) state.voices = allVoices;
+  let all = speechSynthesis.getVoices();
+  let italian = all.filter(v => /^it/i.test(v.lang));
+  let pool = italian.length ? italian : all;
 
-  el.voiceSelect.innerHTML = state.voices.map((v, i) => 
-    `<option value="${i}">${v.name} (${v.lang})</option>`
-  ).join('');
+  // Priorità alle voci Naturali/Neurali/Google/Microsoft per un suono umano
+  pool.sort((a, b) => {
+    const keywords = ['natural', 'neural', 'google', 'online', 'premium', 'enhanced', 'microsoft'];
+    const scoreA = keywords.reduce((s, k) => s + (a.name.toLowerCase().includes(k) ? 2 : 0), 0);
+    const scoreB = keywords.reduce((s, k) => s + (b.name.toLowerCase().includes(k) ? 2 : 0), 0);
+    return scoreB - scoreA;
+  });
+
+  state.voices = pool;
+  el.voiceSelect.innerHTML = pool.map((v, i) => {
+    const isNeural = /natural|neural|google|online|premium|enhanced/i.test(v.name);
+    return `<option value="${i}">${v.name} ${isNeural ? '✨ (Naturale)' : ''}</option>`;
+  }).join('');
 }
 
 if ('speechSynthesis' in window) {
@@ -535,6 +536,7 @@ function speakNext() {
   const utterance = new SpeechSynthesisUtterance(item.text);
   utterance.lang = 'it-IT';
   utterance.rate = parseFloat(el.rateInput.value) || 1.0;
+  utterance.pitch = parseFloat(el.pitchInput.value) || 1.0;
   
   const selectedVoice = state.voices[el.voiceSelect.value];
   if (selectedVoice) utterance.voice = selectedVoice;
@@ -551,7 +553,6 @@ function speakNext() {
     speakNext();
   };
 
-  // Mantieni il riferimento globale per impedire la Garbage Collection a metà frase
   state.activeUtterance = utterance;
   speechSynthesis.speak(utterance);
 }
@@ -571,7 +572,7 @@ function updateQueueUI() {
   el.queueCounter.textContent = `${state.queue.length} messagg${state.queue.length === 1 ? 'o' : 'i'}`;
 }
 
-// --- NETWORK ENGINE (PeerJS) ---
+// --- PEERJS P2P ENGINE ---
 function generateRoomCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
@@ -597,53 +598,45 @@ function initHost() {
   state.roomId = generateRoomCode();
   state.myName = el.userName.value.trim() || 'Host';
 
-  state.peer = new Peer(`lv3-${state.roomId.toLowerCase()}`);
+  updateStatus('Creazione stanza...', false);
+  state.peer = new Peer(`live-voice-v4-${state.roomId.toLowerCase()}`, PEER_CONFIG);
 
   state.peer.on('open', () => enterRoomUI());
+
   state.peer.on('connection', conn => {
-    let peerId = conn.peer;
-
-    conn.on('data', data => {
-      if (data.t === 'join') {
-        state.peers.set(peerId, { conn, name: data.name });
-        
-        // Invia risposta di Benvenuto con lo stato della stanza
-        conn.send({
-          t: 'welcome',
-          muted: state.muted,
-          rate: el.rateInput.value,
-          people: getPeopleList()
-        });
-
-        renderPeople();
-        broadcast({ t: 'people', people: getPeopleList() }, peerId);
-      }
-
-      if (data.t === 'msg') {
-        if (state.muted) {
-          conn.send({ t: 'rejected', reason: 'La stanza è in sola lettura dall\'host.' });
-          return;
+    conn.on('open', () => {
+      conn.on('data', data => {
+        if (data.t === 'join') {
+          state.peers.set(conn.peer, { conn, name: data.name });
+          conn.send({
+            t: 'welcome',
+            muted: state.muted,
+            people: getPeopleList()
+          });
+          renderPeople();
+          broadcast({ t: 'people', people: getPeopleList() }, conn.peer);
         }
-        appendMessage(data.name, data.text, false);
-        enqueueAudio(data.text);
-        broadcast(data, peerId);
-      }
 
-      if (data.t === 'rate') {
-        el.rateInput.value = data.value;
-        el.rateLabel.textContent = `${parseFloat(data.value).toFixed(2)}×`;
-        broadcast(data, peerId);
-      }
+        if (data.t === 'msg') {
+          if (state.muted) {
+            conn.send({ t: 'rejected', reason: 'La stanza è bloccata dall\'host.' });
+            return;
+          }
+          appendMessage(data.name, data.text, false);
+          enqueueAudio(data.text);
+          broadcast(data, conn.peer);
+        }
+      });
     });
 
     conn.on('close', () => {
-      state.peers.delete(peerId);
+      state.peers.delete(conn.peer);
       renderPeople();
       broadcast({ t: 'people', people: getPeopleList() });
     });
   });
 
-  state.peer.on('error', err => updateStatus('Errore connessione Host', false));
+  state.peer.on('error', err => updateStatus('Errore P2P Host: ' + err.type, false));
 }
 
 function initGuest(code) {
@@ -651,10 +644,12 @@ function initGuest(code) {
   state.roomId = code.toUpperCase();
   state.myName = el.userName.value.trim() || 'Ospite';
 
-  state.peer = new Peer();
+  updateStatus('Connessione in corso...', false);
+  state.peer = new Peer(PEER_CONFIG);
 
   state.peer.on('open', () => {
-    state.hostConn = state.peer.connect(`lv3-${state.roomId.toLowerCase()}`, { reliable: true });
+    const targetPeerId = `live-voice-v4-${state.roomId.toLowerCase()}`;
+    state.hostConn = state.peer.connect(targetPeerId, { reliable: true });
 
     state.hostConn.on('open', () => {
       state.hostConn.send({ t: 'join', name: state.myName });
@@ -672,10 +667,6 @@ function initGuest(code) {
         appendMessage(data.name, data.text, false);
         enqueueAudio(data.text);
       }
-      if (data.t === 'rate') {
-        el.rateInput.value = data.value;
-        el.rateLabel.textContent = `${parseFloat(data.value).toFixed(2)}×`;
-      }
       if (data.t === 'rejected') alert(data.reason);
       if (data.t === 'kicked') {
         alert('Sei stato rimosso dall\'host.');
@@ -686,12 +677,16 @@ function initGuest(code) {
     state.hostConn.on('close', () => {
       updateStatus('Disconnesso dall\'host', false);
     });
+
+    state.hostConn.on('error', () => updateStatus('Errore connessione', false));
   });
 
-  state.peer.on('error', () => updateStatus('Stanza non trovata', false));
+  state.peer.on('error', err => {
+    updateStatus('Stanza non trovata o offline', false);
+  });
 }
 
-// --- UI ENGINE & RENDERERS ---
+// --- UI HELPERS ---
 function updateStatus(text, isOnline) {
   el.statusText.textContent = text;
   if (isOnline) el.statusDot.classList.add('online');
@@ -729,7 +724,7 @@ function renderModerationList() {
   const list = getPeopleList().filter(p => !p.isHost);
   
   if (list.length === 0) {
-    el.moderationList.innerHTML = '<div style="font-size:12px; color:var(--text-muted)">Nessun altro partecipante presente.</div>';
+    el.moderationList.innerHTML = '<div style="font-size:12px; color:var(--text-muted)">Nessun utente da gestire.</div>';
     return;
   }
 
@@ -780,7 +775,7 @@ function sendMessage() {
   if (!text) return;
 
   if (state.muted && !state.isHost) {
-    alert('La stanza è attualmente bloccata in sola lettura dall\'host.');
+    alert('La stanza è bloccata dall\'host.');
     return;
   }
 
@@ -803,7 +798,7 @@ function escapeHTML(str) {
   );
 }
 
-// --- EVENT LISTENERS ---
+// --- EVENT HANDLERS ---
 $('btnCreate').onclick = () => initHost();
 
 $('btnJoin').onclick = () => {
@@ -815,26 +810,21 @@ $('btnJoin').onclick = () => {
 $('btnSend').onclick = sendMessage;
 el.messageInput.onkeydown = e => { if (e.key === 'Enter') sendMessage(); };
 
-el.rateInput.oninput = e => {
-  const val = e.target.value;
-  el.rateLabel.textContent = `${parseFloat(val).toFixed(2)}×`;
-  const payload = { t: 'rate', value: val };
-  if (state.isHost) broadcast(payload);
-  else if (state.hostConn?.open) state.hostConn.send(payload);
-};
+el.rateInput.oninput = e => el.rateLabel.textContent = `${parseFloat(e.target.value).toFixed(2)}×`;
+el.pitchInput.oninput = e => el.pitchLabel.textContent = `${parseFloat(e.target.value).toFixed(2)}`;
 
 $('btnShare').onclick = () => {
   const shareUrl = window.location.href;
   if (navigator.share) {
-    navigator.share({ title: 'Live Voice', text: 'Entra nella mia stanza vocale!', url: shareUrl }).catch(() => {});
+    navigator.share({ title: 'Live Voice Neural', text: 'Entra nella mia stanza!', url: shareUrl }).catch(() => {});
   } else {
-    navigator.clipboard.writeText(shareUrl).then(() => alert('Link di invito copiato negli appunti!'));
+    navigator.clipboard.writeText(shareUrl).then(() => alert('Link copiato negli appunti!'));
   }
 };
 
 $('btnSettings').onclick = () => {
   if (!state.isHost) {
-    alert('Solo l\'host della stanza può accedere al pannello di moderazione.');
+    alert('Solo l\'host può accedere alla moderazione.');
     return;
   }
   el.modalOverlay.classList.add('active');
@@ -856,7 +846,6 @@ el.btnToggleMute.onclick = () => {
   broadcast({ t: 'muted', value: state.muted });
 };
 
-// Auto-fill codice se presente nell'URL
 window.addEventListener('DOMContentLoaded', () => {
   const roomParam = new URLSearchParams(window.location.search).get('room');
   if (roomParam) el.roomCodeInput.value = roomParam.toUpperCase();
