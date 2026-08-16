@@ -1,1763 +1,866 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scopa AI - Motore Avanzato Pro</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --felt-green: #0d5e3a;
-            --felt-dark: #094d2e;
-            --card-bg: #fff;
-            --gold: #ffd700;
-            --shadow: rgba(0, 0, 0, 0.3);
-            --highlight: #4CAF50;
-            --danger: #f44336;
-            --info: #2196F3;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #0a3d26 0%, #1a5c3f 100%);
-            color: #fff;
-            overflow-x: hidden;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        header {
-            text-align: center;
-            padding: 30px 0;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 20px;
-            margin-bottom: 30px;
-            backdrop-filter: blur(10px);
-        }
-
-        h1 {
-            font-size: clamp(24px, 5vw, 48px);
-            font-weight: 700;
-            background: linear-gradient(135deg, var(--gold), #ffed4e);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 10px;
-        }
-
-        .subtitle {
-            font-size: clamp(12px, 2vw, 18px);
-            opacity: 0.8;
-        }
-
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr 380px;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        @media (max-width: 1200px) {
-            .main-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .game-area {
-            background: var(--felt-green);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 60px var(--shadow);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .game-area::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: 
-                repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255, 255, 255, 0.02) 10px, rgba(255, 255, 255, 0.02) 20px),
-                radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.05), transparent);
-            pointer-events: none;
-        }
-
-        .control-panel {
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 20px;
-            padding: 25px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 10px 40px var(--shadow);
-        }
-
-        .section {
-            position: relative;
-            z-index: 1;
-            margin-bottom: 25px;
-        }
-
-        .section-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .section-title::before {
-            content: '';
-            width: 4px;
-            height: 20px;
-            background: var(--gold);
-            border-radius: 2px;
-        }
-
-        .cards-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            min-height: 120px;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 12px;
-            border: 2px dashed rgba(255, 255, 255, 0.2);
-        }
-
-        .card {
-            width: 80px;
-            height: 120px;
-            background: var(--card-bg);
-            border-radius: 8px;
-            box-shadow: 0 4px 12px var(--shadow);
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 8px;
-            user-select: none;
-        }
-
-        .card:hover {
-            transform: translateY(-8px) scale(1.05);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-        }
-
-        .card.selected {
-            border: 3px solid var(--gold);
-            box-shadow: 0 0 20px var(--gold);
-            transform: translateY(-5px);
-        }
-
-        .card.recommended {
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 4px 12px var(--shadow); }
-            50% { box-shadow: 0 0 30px var(--highlight), 0 4px 12px var(--shadow); }
-        }
-
-        .card-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #333;
-        }
-
-        .card-suit {
-            font-size: 32px;
-            margin: 5px 0;
-        }
-
-        .card-name {
-            font-size: 10px;
-            color: #666;
-            text-align: center;
-        }
-
-        .btn {
-            background: linear-gradient(135deg, var(--highlight), #45a049);
-            color: white;
-            border: none;
-            padding: 14px 28px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s;
-            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
-            width: 100%;
-            margin-bottom: 10px;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, var(--info), #1976D2);
-            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, var(--danger), #d32f2f);
-            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .analysis-box {
-            background: rgba(0, 0, 0, 0.6);
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 20px;
-            border-left: 4px solid var(--gold);
-        }
-
-        .analysis-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 12px;
-            color: var(--gold);
-        }
-
-        .analysis-content {
-            font-size: 14px;
-            line-height: 1.6;
-            opacity: 0.9;
-        }
-
-        .stat-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 12px;
-            margin-top: 15px;
-        }
-
-        .stat-card {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 12px;
-            border-radius: 8px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--gold);
-        }
-
-        .stat-label {
-            font-size: 12px;
-            opacity: 0.7;
-            margin-top: 4px;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--highlight), var(--gold));
-            transition: width 0.5s ease;
-        }
-
-        .move-option {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            border-left: 3px solid transparent;
-            transition: all 0.3s;
-            cursor: pointer;
-        }
-
-        .move-option:hover {
-            background: rgba(255, 255, 255, 0.15);
-            border-left-color: var(--gold);
-        }
-
-        .move-option.best {
-            border-left-color: var(--highlight);
-            background: rgba(76, 175, 80, 0.2);
-        }
-
-        .move-score {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--gold);
-            margin-bottom: 5px;
-        }
-
-        .move-description {
-            font-size: 13px;
-            opacity: 0.8;
-            line-height: 1.4;
-        }
-
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .tab {
-            padding: 10px 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 14px;
-        }
-
-        .tab.active {
-            background: var(--gold);
-            color: #000;
-            font-weight: 600;
-        }
-
-        .tab:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .log-entry {
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 6px;
-            margin-bottom: 8px;
-            font-size: 13px;
-            font-family: 'Courier New', monospace;
-        }
-
-        .card-selector {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-            gap: 8px;
-            margin-top: 10px;
-        }
-
-        .card-mini {
-            width: 100%;
-            aspect-ratio: 2/3;
-            background: var(--card-bg);
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            padding: 4px;
-            transition: all 0.2s;
-            border: 2px solid transparent;
-        }
-
-        .card-mini:hover {
-            transform: scale(1.05);
-            border-color: var(--gold);
-        }
-
-        .card-mini.added {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: var(--felt-dark);
-            border-radius: 20px;
-            padding: 30px;
-            max-width: 800px;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-        }
-
-        .modal-close {
-            float: right;
-            font-size: 28px;
-            cursor: pointer;
-            color: var(--gold);
-        }
-
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: var(--gold);
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .tree-view {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 15px;
-            border-radius: 8px;
-            overflow-x: auto;
-        }
-
-        .tree-node {
-            margin-left: 20px;
-            border-left: 2px solid rgba(255, 255, 255, 0.2);
-            padding-left: 10px;
-            margin-top: 5px;
-        }
-
-        @media (max-width: 768px) {
-            .card {
-                width: 60px;
-                height: 90px;
-            }
-            
-            .card-value {
-                font-size: 18px;
-            }
-            
-            .card-suit {
-                font-size: 24px;
-            }
-        }
-
-        .heatmap {
-            display: grid;
-            grid-template-columns: repeat(10, 1fr);
-            gap: 4px;
-            margin-top: 10px;
-        }
-
-        .heatmap-cell {
-            aspect-ratio: 1;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            font-weight: 600;
-            cursor: help;
-        }
-
-        .tooltip {
-            position: relative;
-        }
-
-        .tooltip:hover::after {
-            content: attr(data-tooltip);
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            white-space: nowrap;
-            z-index: 100;
-            margin-bottom: 5px;
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#090a0f">
+<title>Live Voice · NextGen</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+:root {
+  --bg: #090a0f;
+  --card: rgba(18, 22, 33, 0.75);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --accent: #6366f1;
+  --accent-glow: rgba(99, 102, 241, 0.35);
+  --accent-hover: #4f46e5;
+  --success: #10b981;
+  --danger: #f43f5e;
+  --danger-bg: rgba(244, 63, 94, 0.12);
+  --text-main: #f3f4f6;
+  --text-muted: #9ca3af;
+  --radius: 20px;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font);
+  background-color: var(--bg);
+  color: var(--text-main);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  background-image: 
+    radial-gradient(circle at 50% -20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 40%);
+  background-attachment: fixed;
+  overflow-x: hidden;
+}
+
+.app {
+  width: min(920px, 100%);
+  padding: 20px 16px calc(32px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Header & Navbar */
+.nav {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+.brand {
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.03em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.brand-icon {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, var(--accent), #8b5cf6);
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+.live-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--card-border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6b7280;
+  transition: all 0.3s;
+}
+.status-dot.online {
+  background: var(--success);
+  box-shadow: 0 0 10px var(--success);
+}
+
+/* Glass Card Component */
+.card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 24px;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Hero Section */
+.hero { text-align: center; padding: 40px 20px; }
+.hero-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+h1 {
+  font-size: clamp(32px, 6vw, 52px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin-bottom: 14px;
+  background: linear-gradient(to bottom right, #fff, #94a3b8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.sub {
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.6;
+  max-width: 520px;
+  margin: 0 auto 30px;
+}
+
+/* Form Controls */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+.field-group { text-align: left; }
+.field-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  display: block;
+}
+input, select {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text-main);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+input:focus, select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* Buttons */
+.btn-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  max-width: 560px;
+  margin: 16px auto 0;
+}
+button {
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  border: 0;
+  border-radius: 14px;
+  padding: 14px 20px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+button.primary {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 20px var(--accent-glow);
+}
+button.primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+button.secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-main);
+  border: 1px solid var(--card-border);
+}
+button.secondary:hover { background: rgba(255, 255, 255, 0.1); }
+button.danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid rgba(244, 63, 94, 0.2);
+}
+button.danger:hover { background: rgba(244, 63, 94, 0.25); }
+.icon-btn { padding: 10px 14px; border-radius: 12px; }
+
+/* Dashboard Room UI */
+.room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.room-title { font-size: 24px; font-weight: 800; letter-spacing: 0.05em; }
+.people-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--card-border);
+}
+.person-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--card-border);
+  border-radius: 99px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.person-chip.host { border-color: rgba(234, 179, 8, 0.4); background: rgba(234, 179, 8, 0.08); }
+
+/* Audio Wave Visualizer */
+.voice-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 12px 18px;
+  border-radius: 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--card-border);
+}
+.equalizer { display: flex; gap: 4px; align-items: flex-end; height: 16px; }
+.eq-bar {
+  width: 3px;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  opacity: 0.3;
+}
+.speaking .eq-bar {
+  opacity: 1;
+  animation: bounce 0.6s ease-in-out infinite alternate;
+}
+.speaking .eq-bar:nth-child(1) { animation-delay: 0.1s; }
+.speaking .eq-bar:nth-child(2) { animation-delay: 0.3s; }
+.speaking .eq-bar:nth-child(3) { animation-delay: 0.2s; }
+@keyframes bounce { 0% { height: 4px; } 100% { height: 16px; } }
+
+/* Messages & Chat */
+.messages-container {
+  height: 48vh;
+  min-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 4px;
+  margin: 12px 0;
+}
+.msg {
+  max-width: 82%;
+  padding: 12px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--card-border);
+  align-self: flex-start;
+  animation: fadeIn 0.2s ease;
+}
+.msg.me {
+  align-self: flex-end;
+  background: linear-gradient(135deg, var(--accent), #4f46e5);
+  border: none;
+  color: #fff;
+}
+.msg-meta { font-size: 11px; font-weight: 700; opacity: 0.7; margin-bottom: 4px; }
+.msg-body { font-size: 14px; line-height: 1.45; word-break: break-word; }
+
+/* Composer */
+.composer { display: flex; gap: 10px; }
+.composer input { flex: 1; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+.modal-sheet {
+  width: min(480px, 100%);
+  background: #121520;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+}
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+
+/* Utilities */
+.hidden { display: none !important; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 640px) {
+  .form-grid, .btn-group { grid-template-columns: 1fr; }
+  .messages-container { height: 42vh; }
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🃏 Scopa AI Pro - Motore Avanzato</h1>
-            <p class="subtitle">Minimax α-β Pruning | MCTS UCB1 | Analisi Bayesiana | Win Rate 80%+</p>
-        </header>
 
-        <div class="main-grid">
-            <div class="game-area">
-                <div class="section">
-                    <div class="section-title">🎯 Tavolo da Gioco</div>
-                    <div class="cards-container" id="tableCards">
-                        <div style="color: rgba(255,255,255,0.5); width: 100%; text-align: center;">
-                            Clicca "Setup Automatico" o aggiungi carte manualmente
-                        </div>
-                    </div>
-                </div>
+<main class="app">
+  <!-- Nav Header -->
+  <nav class="nav">
+    <div class="brand">
+      <div class="brand-icon">🔊</div>
+      <span>Live Voice</span>
+    </div>
+    <div class="live-badge">
+      <span id="statusDot" class="status-dot"></span>
+      <span id="statusText">Disconnesso</span>
+    </div>
+  </nav>
 
-                <div class="section">
-                    <div class="section-title">🖐️ La Tua Mano</div>
-                    <div class="cards-container" id="playerHand">
-                        <div style="color: rgba(255,255,255,0.5); width: 100%; text-align: center;">
-                            Aggiungi le tue carte
-                        </div>
-                    </div>
-                </div>
-
-                <div class="section">
-                    <div class="section-title">👥 Carte Viste Avversari</div>
-                    <div class="cards-container" id="opponentCards">
-                        <div style="color: rgba(255,255,255,0.5); width: 100%; text-align: center;">
-                            Carte giocate dagli avversari
-                        </div>
-                    </div>
-                </div>
-
-                <div class="analysis-box" id="analysisBox" style="display: none;">
-                    <div class="analysis-title">🧠 Analisi AI - Mossa Ottimale</div>
-                    <div class="analysis-content" id="analysisContent"></div>
-                </div>
-            </div>
-
-            <div class="control-panel">
-                <div class="tabs">
-                    <div class="tab active" data-tab="control">Controlli</div>
-                    <div class="tab" data-tab="stats">Statistiche</div>
-                    <div class="tab" data-tab="debug">Debug</div>
-                    <div class="tab" data-tab="learn">Impara</div>
-                </div>
-
-                <div class="tab-content" id="controlTab">
-                    <button class="btn" onclick="game.setupRandom()">🎲 Setup Automatico</button>
-                    <button class="btn btn-secondary" onclick="game.calculateBestMove()">🧠 Calcola Mossa Migliore</button>
-                    <button class="btn btn-secondary" onclick="game.simulateGames()">🔄 Simula 10,000 Partite</button>
-                    <button class="btn btn-secondary" onclick="game.showProbabilities()">📊 Analisi Probabilistica</button>
-                    <button class="btn btn-secondary" onclick="game.aiVsAi()">🤖 AI vs AI</button>
-                    <button class="btn btn-danger" onclick="game.reset()">🔄 Reset</button>
-
-                    <div style="margin-top: 20px;">
-                        <div class="section-title" style="font-size: 14px;">Aggiungi Carte</div>
-                        <select id="cardLocation" style="width: 100%; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
-                            <option value="hand">Mia Mano</option>
-                            <option value="table">Tavolo</option>
-                            <option value="opponent">Avversari</option>
-                        </select>
-                        <div class="card-selector" id="cardSelector"></div>
-                    </div>
-                </div>
-
-                <div class="tab-content" id="statsTab" style="display: none;">
-                    <div class="stat-grid">
-                        <div class="stat-card">
-                            <div class="stat-value" id="statWinRate">0%</div>
-                            <div class="stat-label">Win Rate</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="statAvgScore">0</div>
-                            <div class="stat-label">Score Medio</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="statScopes">0</div>
-                            <div class="stat-label">Scope Totali</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="statPrimiera">0%</div>
-                            <div class="stat-label">Primiera Win%</div>
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 20px;">
-                        <div class="analysis-title">Carte Rimanenti nel Mazzo</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="deckProgress" style="width: 100%"></div>
-                        </div>
-                        <div style="text-align: center; margin-top: 5px; font-size: 14px;">
-                            <span id="cardsLeft">40</span> / 40 carte
-                        </div>
-                    </div>
-
-                    <div class="log-entry" style="margin-top: 15px; max-height: 200px; overflow-y: auto;" id="gameLog">
-                        <div style="opacity: 0.5;">Log di gioco...</div>
-                    </div>
-                </div>
-
-                <div class="tab-content" id="debugTab" style="display: none;">
-                    <div class="analysis-title">🔍 Albero Decisionale Minimax</div>
-                    <div class="tree-view" id="decisionTree" style="max-height: 400px; overflow-y: auto;">
-                        <div style="opacity: 0.5;">Calcola una mossa per vedere l'albero...</div>
-                    </div>
-                </div>
-
-                <div class="tab-content" id="learnTab" style="display: none;">
-                    <div class="analysis-title">🎓 Strategie della Scopa</div>
-                    <div style="font-size: 13px; line-height: 1.6; opacity: 0.9;">
-                        <p style="margin-bottom: 10px;"><strong>Punteggio (ogni partita):</strong></p>
-                        <ul style="margin-left: 20px; margin-bottom: 15px;">
-                            <li>+1 punto per ogni Scopa</li>
-                            <li>+1 punto chi prende più carte (21+)</li>
-                            <li>+1 punto chi prende più denari (6+)</li>
-                            <li>+1 punto chi ha il 7 di denari</li>
-                            <li>+1 punto chi ha la primiera migliore</li>
-                        </ul>
-
-                        <p style="margin-bottom: 10px;"><strong>Calcolo Primiera:</strong></p>
-                        <p style="margin-left: 20px; font-size: 12px; opacity: 0.8; margin-bottom: 15px;">
-                            7=21, 6=18, Asso=16, 5=15, 4=14, 3=13, 2=12, Figure=10<br>
-                            Si somma la carta più alta per seme
-                        </p>
-
-                        <p style="margin-bottom: 10px;"><strong>Strategie Avanzate:</strong></p>
-                        <ul style="margin-left: 20px; margin-bottom: 15px;">
-                            <li><strong>Controllo Settebello:</strong> Massima priorità</li>
-                            <li><strong>Accumulo Denari:</strong> 6+ denari = punto garantito</li>
-                            <li><strong>Blocco:</strong> Lascia carte inutili all'avversario</li>
-                            <li><strong>Baiting:</strong> Sacrifica per proteggere carte chiave</li>
-                            <li><strong>End-game:</strong> Ultima mano prende tutto il tavolo</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <!-- Hero / Join View -->
+  <section id="homeView" class="card hero">
+    <span class="hero-tag">Sintesi Vocale P2P Sync</span>
+    <h1>Una stanza.<br>Una sola voce.</h1>
+    <p class="sub">Scrivi un messaggio e verrà letto ad alta voce a tutti i partecipanti contemporaneamente in tempo reale.</p>
+    
+    <div class="form-grid">
+      <div class="field-group">
+        <label class="field-label" for="userName">Il tuo nome</label>
+        <input id="userName" maxlength="20" placeholder="Es. Mario" autocomplete="off">
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="roomCodeInput">Codice Stanza</label>
+        <input id="roomCodeInput" maxlength="12" placeholder="Vuoto per crearne una" style="text-transform: uppercase;">
+      </div>
     </div>
 
-    <div class="modal" id="probabilityModal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="this.parentElement.parentElement.classList.remove('active')">&times;</span>
-            <h2 style="margin-bottom: 20px;">📊 Analisi Probabilistica Avanzata</h2>
-            <div id="probabilityContent"></div>
+    <div class="btn-group">
+      <button id="btnCreate" class="primary">✨ Crea Stanza</button>
+      <button id="btnJoin" class="secondary">🚪 Entra</button>
+    </div>
+  </section>
+
+  <!-- Active Room View -->
+  <section id="roomView" class="hidden">
+    <!-- Room Info Card -->
+    <div class="card" style="padding: 18px 24px;">
+      <div class="room-header">
+        <div>
+          <span class="hero-tag" style="margin: 0;">Stanza Attiva</span>
+          <div class="room-title" id="displayRoomCode">------</div>
         </div>
+        <div style="display: flex; gap: 8px;">
+          <button id="btnShare" class="secondary icon-btn">🔗 Condividi</button>
+          <button id="btnSettings" class="secondary icon-btn">⚙️ Moderazione</button>
+        </div>
+      </div>
+      <div class="people-bar" id="peopleList"></div>
     </div>
 
-    <script>
-        // ============= SCOPA ENGINE COMPLETO =============
+    <!-- Chat & Audio Player Card -->
+    <div class="card" style="margin-top: 14px;">
+      <div class="voice-indicator" id="voiceIndicator">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 13px; font-weight: 700; color: var(--text-muted);">🔊 CODA VOCALE:</span>
+          <span id="queueCounter" style="font-size: 13px; font-weight: 700;">0 messaggi</span>
+        </div>
+        <div class="equalizer" id="equalizer">
+          <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
+        </div>
+      </div>
+
+      <div class="messages-container" id="messagesBox">
+        <div id="emptyState" style="margin: auto; text-align: center; color: var(--text-muted); font-size: 14px;">
+          Nessun messaggio ancora.<br>Invia un testo per farlo pronunciare dalla stanza!
+        </div>
+      </div>
+
+      <div class="composer">
+        <input id="messageInput" maxlength="400" placeholder="Scrivi un messaggio vocale…" autocomplete="off">
+        <button id="btnSend" class="primary" style="padding: 14px 24px;">Invia</button>
+      </div>
+    </div>
+
+    <!-- Audio Settings -->
+    <div class="card" style="margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+      <div>
+        <label class="field-label" for="voiceSelect">Voce Lettore</label>
+        <select id="voiceSelect"></select>
+      </div>
+      <div>
+        <label class="field-label">Velocità (<span id="rateLabel">1.0×</span>)</label>
+        <input id="rateInput" type="range" min="0.7" max="1.4" step="0.05" value="1.0">
+      </div>
+    </div>
+  </section>
+
+  <!-- Moderation Modal -->
+  <div id="modalOverlay" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h3 style="font-size: 18px; font-weight: 800;">👑 Controllo Stanza</h3>
+        <button id="btnCloseModal" class="secondary icon-btn" style="padding: 6px 12px;">✕</button>
+      </div>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+        Controlla i permessi della stanza e la coda della sintesi vocale.
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button id="btnClearQueue" class="secondary" style="width: 100%;">🧹 Svuota Coda Audio</button>
+        <button id="btnToggleMute" class="danger" style="width: 100%;">🔒 Blocca Messaggi Client</button>
+      </div>
+      <div style="margin-top: 20px;">
+        <span class="field-label">Partecipanti connessi</span>
+        <div id="moderationList" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// --- STATE MANAGEMENT ---
+const state = {
+  peer: null,
+  roomId: '',
+  myName: 'Ospite',
+  isHost: false,
+  hostConn: null,
+  peers: new Map(), // peerId -> { conn, name }
+  queue: [],
+  speaking: false,
+  voices: [],
+  muted: false,
+  audioUnlocked: false,
+  activeUtterance: null // Previene il bug di Garbage Collection nel Web Speech API
+};
+
+// --- DOM ELEMENTS ---
+const $ = id => document.getElementById(id);
+const el = {
+  statusDot: $('statusDot'),
+  statusText: $('statusText'),
+  homeView: $('homeView'),
+  roomView: $('roomView'),
+  userName: $('userName'),
+  roomCodeInput: $('roomCodeInput'),
+  displayRoomCode: $('displayRoomCode'),
+  peopleList: $('peopleList'),
+  messagesBox: $('messagesBox'),
+  messageInput: $('messageInput'),
+  queueCounter: $('queueCounter'),
+  voiceIndicator: $('voiceIndicator'),
+  voiceSelect: $('voiceSelect'),
+  rateInput: $('rateInput'),
+  rateLabel: $('rateLabel'),
+  modalOverlay: $('modalOverlay'),
+  moderationList: $('moderationList'),
+  btnToggleMute: $('btnToggleMute')
+};
+
+// --- AUDIO ENGINE (TTS) ---
+function unlockAudio() {
+  if (state.audioUnlocked) return;
+  if ('speechSynthesis' in window) {
+    const u = new SpeechSynthesisUtterance('');
+    speechSynthesis.speak(u);
+    state.audioUnlocked = true;
+  }
+}
+document.addEventListener('click', unlockAudio, { once: true });
+
+function initVoices() {
+  if (!('speechSynthesis' in window)) return;
+  let allVoices = speechSynthesis.getVoices();
+  state.voices = allVoices.filter(v => /^it/i.test(v.lang));
+  if (!state.voices.length) state.voices = allVoices;
+
+  el.voiceSelect.innerHTML = state.voices.map((v, i) => 
+    `<option value="${i}">${v.name} (${v.lang})</option>`
+  ).join('');
+}
+
+if ('speechSynthesis' in window) {
+  speechSynthesis.onvoiceschanged = initVoices;
+  initVoices();
+}
+
+function speakNext() {
+  if (state.speaking || state.queue.length === 0) {
+    if (!state.speaking) setSpeakingUI(false);
+    return;
+  }
+
+  state.speaking = true;
+  setSpeakingUI(true);
+
+  const item = state.queue.shift();
+  updateQueueUI();
+
+  const utterance = new SpeechSynthesisUtterance(item.text);
+  utterance.lang = 'it-IT';
+  utterance.rate = parseFloat(el.rateInput.value) || 1.0;
+  
+  const selectedVoice = state.voices[el.voiceSelect.value];
+  if (selectedVoice) utterance.voice = selectedVoice;
+
+  utterance.onend = () => {
+    state.speaking = false;
+    state.activeUtterance = null;
+    speakNext();
+  };
+
+  utterance.onerror = () => {
+    state.speaking = false;
+    state.activeUtterance = null;
+    speakNext();
+  };
+
+  // Mantieni il riferimento globale per impedire la Garbage Collection a metà frase
+  state.activeUtterance = utterance;
+  speechSynthesis.speak(utterance);
+}
+
+function enqueueAudio(text) {
+  state.queue.push({ text });
+  updateQueueUI();
+  speakNext();
+}
+
+function setSpeakingUI(isSpeaking) {
+  if (isSpeaking) el.voiceIndicator.classList.add('speaking');
+  else el.voiceIndicator.classList.remove('speaking');
+}
+
+function updateQueueUI() {
+  el.queueCounter.textContent = `${state.queue.length} messagg${state.queue.length === 1 ? 'o' : 'i'}`;
+}
+
+// --- NETWORK ENGINE (PeerJS) ---
+function generateRoomCode() {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+function getPeopleList() {
+  const list = [{ id: state.peer?.id || 'me', name: state.myName, isHost: state.isHost }];
+  for (const [id, data] of state.peers) {
+    list.push({ id, name: data.name, isHost: false });
+  }
+  return list;
+}
+
+function broadcast(data, exceptId = null) {
+  for (const [id, record] of state.peers) {
+    if (id !== exceptId && record.conn && record.conn.open) {
+      record.conn.send(data);
+    }
+  }
+}
+
+function initHost() {
+  state.isHost = true;
+  state.roomId = generateRoomCode();
+  state.myName = el.userName.value.trim() || 'Host';
+
+  state.peer = new Peer(`lv3-${state.roomId.toLowerCase()}`);
+
+  state.peer.on('open', () => enterRoomUI());
+  state.peer.on('connection', conn => {
+    let peerId = conn.peer;
+
+    conn.on('data', data => {
+      if (data.t === 'join') {
+        state.peers.set(peerId, { conn, name: data.name });
         
-        class ScopaGame {
-            constructor() {
-                this.suits = ['♦️', '♣️', '♥️', '♠️'];
-                this.suitNames = ['Denari', 'Bastoni', 'Coppe', 'Spade'];
-                this.values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-                this.valueNames = ['Asso', '2', '3', '4', '5', '6', '7', 'Fante', 'Cavallo', 'Re'];
-                
-                // Valori primiera ufficiali
-                this.primieraValues = {
-                    7: 21, 6: 18, 1: 16, 5: 15, 4: 14, 3: 13, 2: 12, 8: 10, 9: 10, 10: 10
-                };
-                
-                this.deck = this.createDeck();
-                this.playerHand = [];
-                this.tableCards = [];
-                this.opponentCards = [];
-                this.playerCaptured = [];
-                this.opponentCaptured = [];
-                this.scopes = { player: 0, opponent: 0 };
-                this.gameLog = [];
-                
-                this.stats = {
-                    gamesPlayed: 0,
-                    wins: 0,
-                    totalScore: 0,
-                    scopes: 0,
-                    primieraWins: 0
-                };
-
-                // Cache per ottimizzazione
-                this.evaluationCache = new Map();
-                this.transpositionTable = new Map();
-
-                this.initUI();
-            }
-
-            createDeck() {
-                const deck = [];
-                for (let s = 0; s < 4; s++) {
-                    for (let v = 0; v < 10; v++) {
-                        deck.push({
-                            suit: s,
-                            value: v + 1,
-                            suitSymbol: this.suits[s],
-                            suitName: this.suitNames[s],
-                            valueName: this.valueNames[v],
-                            id: `${s}-${v}`
-                        });
-                    }
-                }
-                return deck;
-            }
-
-            initUI() {
-                const selector = document.getElementById('cardSelector');
-                this.deck.forEach(card => {
-                    const mini = document.createElement('div');
-                    mini.className = 'card-mini';
-                    mini.innerHTML = `
-                        <div style="font-size: 14px; font-weight: bold; color: #333;">${card.value}</div>
-                        <div style="font-size: 16px;">${card.suitSymbol}</div>
-                    `;
-                    mini.onclick = () => this.addCard(card);
-                    mini.dataset.cardId = card.id;
-                    selector.appendChild(mini);
-                });
-
-                document.querySelectorAll('.tab').forEach(tab => {
-                    tab.onclick = () => {
-                        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                        tab.classList.add('active');
-                        document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-                        document.getElementById(tab.dataset.tab + 'Tab').style.display = 'block';
-                    };
-                });
-
-                this.updateStats();
-            }
-
-            addCard(card) {
-                const location = document.getElementById('cardLocation').value;
-                const lists = {
-                    'hand': this.playerHand,
-                    'table': this.tableCards,
-                    'opponent': this.opponentCards
-                };
-
-                const list = lists[location];
-                if (list.find(c => c.id === card.id)) return;
-
-                list.push({...card});
-                this.renderCards();
-                this.updateCardSelector();
-                this.log(`Aggiunta ${card.valueName} di ${card.suitName}`);
-            }
-
-            removeCard(card, from) {
-                const index = from.findIndex(c => c.id === card.id);
-                if (index > -1) {
-                    from.splice(index, 1);
-                    this.renderCards();
-                    this.updateCardSelector();
-                }
-            }
-
-            renderCards() {
-                this.renderCardList(this.tableCards, 'tableCards');
-                this.renderCardList(this.playerHand, 'playerHand');
-                this.renderCardList(this.opponentCards, 'opponentCards');
-            }
-
-            renderCardList(cards, containerId) {
-                const container = document.getElementById(containerId);
-                container.innerHTML = '';
-                
-                if (cards.length === 0) {
-                    const msg = {
-                        'tableCards': 'Nessuna carta sul tavolo',
-                        'playerHand': 'Nessuna carta in mano',
-                        'opponentCards': 'Nessuna carta vista'
-                    }[containerId];
-                    container.innerHTML = `<div style="color: rgba(255,255,255,0.5); width: 100%; text-align: center;">${msg}</div>`;
-                    return;
-                }
-
-                cards.forEach(card => {
-                    const cardEl = document.createElement('div');
-                    cardEl.className = 'card';
-                    cardEl.innerHTML = `
-                        <div class="card-value">${card.value}</div>
-                        <div class="card-suit">${card.suitSymbol}</div>
-                        <div class="card-name">${card.valueName}<br>${card.suitName}</div>
-                    `;
-                    cardEl.onclick = (e) => {
-                        e.stopPropagation();
-                        if (containerId === 'playerHand') {
-                            document.querySelectorAll('#playerHand .card').forEach(c => c.classList.remove('selected'));
-                            cardEl.classList.add('selected');
-                        } else {
-                            const from = containerId === 'tableCards' ? this.tableCards : 
-                                        containerId === 'playerHand' ? this.playerHand : this.opponentCards;
-                            this.removeCard(card, from);
-                        }
-                    };
-                    container.appendChild(cardEl);
-                });
-            }
-
-            updateCardSelector() {
-                const used = [...this.playerHand, ...this.tableCards, ...this.opponentCards];
-                document.querySelectorAll('.card-mini').forEach(mini => {
-                    const isUsed = used.some(c => c.id === mini.dataset.cardId);
-                    mini.classList.toggle('added', isUsed);
-                });
-            }
-
-            setupRandom() {
-                this.reset();
-                
-                const shuffled = [...this.deck].sort(() => Math.random() - 0.5);
-                this.playerHand = shuffled.slice(0, 3);
-                this.tableCards = shuffled.slice(3, 7);
-                
-                this.renderCards();
-                this.updateCardSelector();
-                this.log('Setup: 3 carte in mano, 4 sul tavolo');
-            }
-
-            // ============= MOTORE AI AVANZATO =============
-
-            calculateBestMove() {
-                if (this.playerHand.length === 0) {
-                    alert('Aggiungi carte alla tua mano!');
-                    return;
-                }
-
-                this.log('🧠 Calcolo con Minimax α-β + MCTS...');
-                const startTime = Date.now();
-                
-                const moves = this.generateAllMoves(this.playerHand, this.tableCards);
-                
-                if (moves.length === 0) {
-                    this.showAnalysis({
-                        bestMove: null,
-                        score: 0,
-                        explanation: 'Nessuna mossa disponibile',
-                        time: Date.now() - startTime
-                    });
-                    return;
-                }
-
-                // Valutazione ibrida
-                const evaluatedMoves = moves.map(move => {
-                    // 1. Euristica avanzata
-                    const heuristicScore = this.evaluateMoveAdvanced(move);
-                    
-                    // 2. Minimax con alpha-beta pruning
-                    const minimaxScore = this.minimax(move, 4, -Infinity, Infinity, true);
-                    
-                    // 3. Monte Carlo Tree Search
-                    const mctsScore = this.runMCTS(move, 800);
-                    
-                    // 4. Probabilità bayesiana
-                    const probScore = this.bayesianEvaluation(move);
-                    
-                    // Combinazione pesata
-                    const finalScore = 
-                        heuristicScore * 0.35 + 
-                        minimaxScore * 0.30 + 
-                        mctsScore * 0.25 + 
-                        probScore * 0.10;
-                    
-                    return {
-                        ...move,
-                        score: finalScore,
-                        components: {
-                            heuristic: heuristicScore,
-                            minimax: minimaxScore,
-                            mcts: mctsScore,
-                            bayesian: probScore
-                        }
-                    };
-                });
-
-                evaluatedMoves.sort((a, b) => b.score - a.score);
-                
-                const bestMove = evaluatedMoves[0];
-                const time = Date.now() - startTime;
-
-                this.showAnalysis({ bestMove, allMoves: evaluatedMoves, time });
-
-                document.querySelectorAll('#playerHand .card').forEach((cardEl, idx) => {
-                    if (this.playerHand[idx].id === bestMove.card.id) {
-                        cardEl.classList.add('recommended');
-                    }
-                });
-
-                this.showDecisionTree(evaluatedMoves);
-            }
-
-            generateAllMoves(hand, table) {
-                const moves = [];
-                
-                hand.forEach(card => {
-                    // Mossa 1: Gioca senza prendere
-                    moves.push({
-                        type: 'play',
-                        card: card,
-                        captures: [],
-                        isScopa: false
-                    });
-
-                    // Mossa 2: Prendi carta singola
-                    table.forEach(tableCard => {
-                        if (card.value === tableCard.value) {
-                            const remaining = table.filter(c => c.id !== tableCard.id);
-                            moves.push({
-                                type: 'capture',
-                                card: card,
-                                captures: [tableCard],
-                                isScopa: remaining.length === 0
-                            });
-                        }
-                    });
-
-                    // Mossa 3: Prendi combinazioni
-                    const combos = this.findAllCombinations(table, card.value);
-                    combos.forEach(combo => {
-                        const remaining = table.filter(c => !combo.some(cc => cc.id === c.id));
-                        moves.push({
-                            type: 'capture',
-                            card: card,
-                            captures: combo,
-                            isScopa: remaining.length === 0
-                        });
-                    });
-                });
-
-                return moves;
-            }
-
-            findAllCombinations(cards, target) {
-                const results = [];
-                
-                const backtrack = (start, current, sum) => {
-                    if (sum === target && current.length > 1) {
-                        results.push([...current]);
-                        return;
-                    }
-                    if (sum >= target) return;
-                    
-                    for (let i = start; i < cards.length; i++) {
-                        current.push(cards[i]);
-                        backtrack(i + 1, current, sum + cards[i].value);
-                        current.pop();
-                    }
-                };
-                
-                backtrack(0, [], 0);
-                return results;
-            }
-
-            evaluateMoveAdvanced(move) {
-                let score = 0;
-
-                // SCOPA: valore altissimo
-                if (move.isScopa) score += 150;
-
-                move.captures.forEach(card => {
-                    // Settebello: priorità assoluta
-                    if (card.value === 7 && card.suit === 0) score += 100;
-                    
-                    // Denari: molto importante
-                    if (card.suit === 0) score += 18;
-                    
-                    // Primiera: valore preciso
-                    score += this.primieraValues[card.value] * 1.5;
-                    
-                    // Numero carte
-                    score += 3;
-                    
-                    // Carte alte valgono di più
-                    if (card.value >= 6) score += 5;
-                });
-
-                // Penalità per lasciare carte pericolose
-                if (move.type === 'play') {
-                    const newTable = [...this.tableCards, move.card];
-                    score -= this.calculateTableDanger(newTable) * 2;
-                    
-                    // Penalità extra per lasciare settebello o denari alti
-                    if (move.card.value === 7 && move.card.suit === 0) score -= 80;
-                    if (move.card.suit === 0 && move.card.value >= 6) score -= 15;
-                }
-
-                // Bonus strategico: prendere più carte
-                if (move.captures.length > 2) score += move.captures.length * 8;
-
-                return score;
-            }
-
-            calculateTableDanger(table) {
-                let danger = 0;
-                const unseen = this.getUnseenCards();
-                
-                table.forEach(card => {
-                    // Quante carte potrebbero prenderla?
-                    const threats = unseen.filter(c => {
-                        if (c.value === card.value) return true;
-                        return unseen.some(c2 => c.value + c2.value === card.value);
-                    });
-                    
-                    danger += threats.length * 3;
-                    
-                    // Denari e settebello sono più pericolosi
-                    if (card.suit === 0) danger += 10;
-                    if (card.value === 7 && card.suit === 0) danger += 30;
-                });
-
-                return danger;
-            }
-
-            minimax(move, depth, alpha, beta, maximizingPlayer) {
-                if (depth === 0) {
-                    return this.evaluateMoveAdvanced(move);
-                }
-
-                const state = this.getStateHash(move);
-                if (this.transpositionTable.has(state)) {
-                    return this.transpositionTable.get(state);
-                }
-
-                if (maximizingPlayer) {
-                    let maxEval = -Infinity;
-                    const nextMoves = this.generateHypotheticalMoves(move);
-                    
-                    for (let nextMove of nextMoves) {
-                        const eval_ = this.minimax(nextMove, depth - 1, alpha, beta, false);
-                        maxEval = Math.max(maxEval, eval_);
-                        alpha = Math.max(alpha, eval_);
-                        if (beta <= alpha) break; // Alpha-beta pruning
-                    }
-                    
-                    this.transpositionTable.set(state, maxEval);
-                    return maxEval;
-                } else {
-                    let minEval = Infinity;
-                    const nextMoves = this.generateHypotheticalMoves(move);
-                    
-                    for (let nextMove of nextMoves) {
-                        const eval_ = this.minimax(nextMove, depth - 1, alpha, beta, true);
-                        minEval = Math.min(minEval, eval_);
-                        beta = Math.min(beta, eval_);
-                        if (beta <= alpha) break;
-                    }
-                    
-                    this.transpositionTable.set(state, minEval);
-                    return minEval;
-                }
-            }
-
-            generateHypotheticalMoves(previousMove) {
-                // Genera mosse ipotetiche per minimax
-                const unseen = this.getUnseenCards();
-                const sampleSize = Math.min(3, unseen.length);
-                const sample = [];
-                
-                for (let i = 0; i < sampleSize; i++) {
-                    const randomCard = unseen[Math.floor(Math.random() * unseen.length)];
-                    sample.push(randomCard);
-                }
-                
-                return this.generateAllMoves(sample, this.tableCards);
-            }
-
-            getStateHash(move) {
-                return `${move.card.id}-${move.captures.map(c => c.id).join(',')}-${this.tableCards.map(c => c.id).join(',')}`;
-            }
-
-            runMCTS(move, simulations) {
-                let totalValue = 0;
-                
-                for (let i = 0; i < simulations; i++) {
-                    const result = this.simulateCompleteGame(move);
-                    totalValue += result.value;
-                }
-
-                return totalValue / simulations;
-            }
-
-            simulateCompleteGame(firstMove) {
-                // Simula partita completa e calcola punteggio finale
-                let playerScore = 0;
-                let opponentScore = 0;
-                
-                // Simula effetto della prima mossa
-                playerScore += this.evaluateMoveAdvanced(firstMove) / 20;
-                
-                // Simula resto della partita
-                const unseen = this.getUnseenCards();
-                const playerCards = Math.floor(Math.random() * 10) + 15;
-                const opponentCards = 40 - playerCards;
-                
-                // Punti per carte
-                if (playerCards > 20) playerScore++;
-                else if (opponentCards > 20) opponentScore++;
-                
-                // Simula denari
-                const playerDenari = Math.floor(Math.random() * 7) + 2;
-                if (playerDenari > 5) playerScore++;
-                else opponentScore++;
-                
-                // Simula settebello
-                if (firstMove.captures.some(c => c.value === 7 && c.suit === 0)) {
-                    playerScore++;
-                } else if (Math.random() > 0.5) {
-                    playerScore++;
-                } else {
-                    opponentScore++;
-                }
-                
-                // Simula primiera
-                if (Math.random() > 0.4) playerScore++;
-                else opponentScore++;
-                
-                // Simula scope
-                if (firstMove.isScopa) playerScore++;
-                playerScore += Math.floor(Math.random() * 2);
-                opponentScore += Math.floor(Math.random() * 2);
-                
-                const totalScore = playerScore - opponentScore;
-                return { value: totalScore * 15 + (playerScore > opponentScore ? 50 : -30) };
-            }
-
-            bayesianEvaluation(move) {
-                const unseen = this.getUnseenCards();
-                const total = unseen.length;
-                
-                if (total === 0) return 0;
-                
-                let expectedValue = 0;
-                
-                // Probabilità che l'avversario possa contrare
-                if (move.type === 'play') {
-                    const newTable = [...this.tableCards, move.card];
-                    
-                    newTable.forEach(card => {
-                        const canCaptureSingle = unseen.filter(c => c.value === card.value).length;
-                        const probSingle = canCaptureSingle / total;
-                        
-                        const penalty = card.suit === 0 ? -20 : -8;
-                        expectedValue += probSingle * penalty;
-                    });
-                }
-                
-                // Valore atteso delle catture
-                move.captures.forEach(card => {
-                    let value = this.primieraValues[card.value] / 2;
-                    if (card.suit === 0) value += 10;
-                    if (card.value === 7 && card.suit === 0) value += 40;
-                    expectedValue += value;
-                });
-                
-                return expectedValue;
-            }
-
-            getUnseenCards() {
-                const seen = [
-                    ...this.playerHand, 
-                    ...this.tableCards, 
-                    ...this.opponentCards,
-                    ...this.playerCaptured,
-                    ...this.opponentCaptured
-                ];
-                return this.deck.filter(card => !seen.some(c => c.id === card.id));
-            }
-
-            showAnalysis(analysis) {
-                const box = document.getElementById('analysisBox');
-                const content = document.getElementById('analysisContent');
-                
-                if (!analysis.bestMove) {
-                    content.innerHTML = '<p>Nessuna mossa disponibile</p>';
-                    box.style.display = 'block';
-                    return;
-                }
-
-                const move = analysis.bestMove;
-                let html = `
-                    <div class="move-score">Score Finale: ${move.score.toFixed(2)}</div>
-                    <p style="margin-bottom: 10px;"><strong>📌 Mossa Ottimale:</strong></p>
-                    <p style="margin-bottom: 15px; font-size: 15px;">
-                        Gioca <strong>${move.card.valueName} di ${move.card.suitName}</strong>
-                        ${move.captures.length > 0 ? 
-                            ` → Prendi: ${move.captures.map(c => c.valueName + ' ' + c.suitSymbol).join(', ')}` : 
-                            ' (no capture)'}
-                        ${move.isScopa ? ' <span style="color: var(--gold);">🎯 SCOPA!</span>' : ''}
-                    </p>
-                `;
-
-                if (move.components) {
-                    html += `
-                        <p style="margin-bottom: 10px;"><strong>🔬 Analisi Multi-Algoritmo:</strong></p>
-                        <div class="stat-grid" style="margin-bottom: 15px;">
-                            <div class="stat-card">
-                                <div class="stat-value">${move.components.heuristic.toFixed(1)}</div>
-                                <div class="stat-label">Euristica</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-value">${move.components.minimax.toFixed(1)}</div>
-                                <div class="stat-label">Minimax α-β</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-value">${move.components.mcts.toFixed(1)}</div>
-                                <div class="stat-label">MCTS</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-value">${move.components.bayesian.toFixed(1)}</div>
-                                <div class="stat-label">Bayesiano</div>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                html += `
-                    <p style="margin-bottom: 10px;"><strong>💡 Spiegazione Strategica:</strong></p>
-                    <p style="font-size: 13px; opacity: 0.9; line-height: 1.6;">${this.explainMove(move)}</p>
-                    <p style="margin-top: 15px; font-size: 12px; opacity: 0.6;">
-                        ⏱️ Tempo: ${analysis.time}ms | Depth: 4 | Simulazioni MCTS: 800
-                    </p>
-                `;
-
-                if (analysis.allMoves && analysis.allMoves.length > 1) {
-                    html += `<div style="margin-top: 20px;"><p style="margin-bottom: 10px;"><strong>📊 Alternative:</strong></p>`;
-                    
-                    analysis.allMoves.slice(1, 4).forEach(m => {
-                        html += `
-                            <div class="move-option">
-                                <div class="move-score">${m.score.toFixed(2)}</div>
-                                <div class="move-description">
-                                    ${m.card.valueName} ${m.card.suitSymbol}
-                                    ${m.captures.length > 0 ? ' → ' + m.captures.map(c => c.valueName + c.suitSymbol).join(', ') : ''}
-                                    ${m.isScopa ? ' 🎯' : ''}
-                                </div>
-                            </div>
-                        `;
-                    });
-                    html += '</div>';
-                }
-
-                content.innerHTML = html;
-                box.style.display = 'block';
-                this.log(`✅ Mossa calcolata in ${analysis.time}ms`);
-            }
-
-            explainMove(move) {
-                const reasons = [];
-
-                if (move.isScopa) {
-                    reasons.push('⭐ SCOPA garantita (+1 punto immediato e controllo psicologico)');
-                }
-
-                const settebello = move.captures.find(c => c.value === 7 && c.suit === 0);
-                if (settebello) {
-                    reasons.push('👑 Catturi il SETTEBELLO - fondamentale per la vittoria');
-                }
-
-                const denari = move.captures.filter(c => c.suit === 0);
-                if (denari.length >= 3) {
-                    reasons.push(`💎 ${denari.length} denari catturati - avanzi verso il punto denari`);
-                } else if (denari.length > 0) {
-                    reasons.push(`💎 ${denari.length} denari (ogni denaro conta)`);
-                }
-
-                const primiera = move.captures.reduce((s, c) => s + this.primieraValues[c.value], 0);
-                if (primiera > 50) {
-                    reasons.push(`📊 Primiera eccellente (${primiera} punti) - rinforzi la tua posizione`);
-                }
-
-                if (move.captures.length > 3) {
-                    reasons.push(`🎯 Cattura multipla (${move.captures.length} carte) - avanzi verso il punto carte`);
-                }
-
-                if (move.type === 'play' && move.captures.length === 0) {
-                    const danger = this.calculateTableDanger([...this.tableCards, move.card]);
-                    if (danger < 20) {
-                        reasons.push('🛡️ Tavolo sicuro - minimizza il rischio per l\'avversario');
-                    } else {
-                        reasons.push('⚠️ Nessuna cattura migliore disponibile - carta sacrificata tatticamente');
-                    }
-                }
-
-                if (reasons.length === 0) {
-                    return 'Mossa ottimale calcolata tramite analisi combinata di 4 algoritmi avanzati con migliaia di simulazioni.';
-                }
-
-                return reasons.join('. ') + '.';
-            }
-
-            showDecisionTree(moves) {
-                const tree = document.getElementById('decisionTree');
-                let html = '<div style="font-weight: bold; margin-bottom: 10px;">🌳 Albero Minimax (Top 6)</div>';
-                
-                moves.slice(0, 6).forEach((move, idx) => {
-                    const c = move.components;
-                    html += `
-                        <div class="tree-node">
-                            <div style="color: ${idx === 0 ? 'var(--gold)' : '#fff'};">
-                                ${idx === 0 ? '✓ ' : '  '}${move.card.valueName} ${move.card.suitSymbol} 
-                                → Score: ${move.score.toFixed(2)}
-                            </div>
-                            <div style="margin-left: 10px; opacity: 0.7; font-size: 11px;">
-                                H:${c?.heuristic.toFixed(0)} | 
-                                M:${c?.minimax.toFixed(0)} | 
-                                MC:${c?.mcts.toFixed(0)} | 
-                                B:${c?.bayesian.toFixed(0)}
-                            </div>
-                            ${move.captures.length > 0 ? `
-                                <div style="margin-left: 10px; font-size: 11px; opacity: 0.6;">
-                                    Catture: ${move.captures.map(c => c.valueName + c.suitSymbol).join(', ')}
-                                    ${move.isScopa ? ' [SCOPA]' : ''}
-                                </div>
-                            ` : ''}
-                        </div>
-                    `;
-                });
-                
-                tree.innerHTML = html;
-            }
-
-            // ============= SIMULAZIONE REALISTICA =============
-
-            simulateGames() {
-                this.log('🔄 Simulazione 10,000 partite complete...');
-                const startTime = Date.now();
-                
-                let wins = 0;
-                let totalPlayerScore = 0;
-                let totalOpponentScore = 0;
-                let totalScopes = 0;
-                let primieraWins = 0;
-
-                for (let i = 0; i < 10000; i++) {
-                    const result = this.playFullGame();
-                    if (result.playerScore > result.opponentScore) wins++;
-                    totalPlayerScore += result.playerScore;
-                    totalOpponentScore += result.opponentScore;
-                    totalScopes += result.playerScopes;
-                    if (result.playerPrimiera > result.opponentPrimiera) primieraWins++;
-                }
-
-                const time = Date.now() - startTime;
-                const winRate = (wins / 10000 * 100).toFixed(2);
-                const avgPlayerScore = (totalPlayerScore / 10000).toFixed(2);
-                const avgOpponentScore = (totalOpponentScore / 10000).toFixed(2);
-                const avgScopes = (totalScopes / 10000).toFixed(2);
-                const primieraWinRate = (primieraWins / 10000 * 100).toFixed(1);
-
-                this.stats.gamesPlayed += 10000;
-                this.stats.wins += wins;
-                this.stats.totalScore += totalPlayerScore;
-                this.stats.scopes += totalScopes;
-                this.stats.primieraWins += primieraWins;
-
-                const box = document.getElementById('analysisBox');
-                const content = document.getElementById('analysisContent');
-                
-                content.innerHTML = `
-                    <div class="analysis-title">📊 Risultati Simulazione (10,000 partite complete)</div>
-                    <div class="stat-grid" style="margin-top: 15px;">
-                        <div class="stat-card">
-                            <div class="stat-value" style="color: ${parseFloat(winRate) >= 75 ? 'var(--gold)' : '#fff'};">
-                                ${winRate}%
-                            </div>
-                            <div class="stat-label">Win Rate</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">${avgPlayerScore}</div>
-                            <div class="stat-label">Score Medio (AI)</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">${avgOpponentScore}</div>
-                            <div class="stat-label">Score Avversario</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">${avgScopes}</div>
-                            <div class="stat-label">Scope Medie</div>
-                        </div>
-                    </div>
-                    <div style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px;">
-                        <strong>📈 Analisi Dettagliata:</strong>
-                        <ul style="margin: 10px 0 0 20px; font-size: 13px; line-height: 1.8;">
-                            <li>Win Rate: <strong>${winRate}%</strong> ${parseFloat(winRate) >= 80 ? '🏆 Eccellente!' : parseFloat(winRate) >= 70 ? '✅ Ottimo' : '⚠️ Da migliorare'}</li>
-                            <li>Primiera vinta: <strong>${primieraWinRate}%</strong> delle volte</li>
-                            <li>Scope medie: <strong>${avgScopes}</strong> per partita</li>
-                            <li>Vantaggio medio: <strong>+${(parseFloat(avgPlayerScore) - parseFloat(avgOpponentScore)).toFixed(2)}</strong> punti</li>
-                        </ul>
-                    </div>
-                    <p style="margin-top: 15px; font-size: 12px; opacity: 0.6;">
-                        ⏱️ ${time}ms | ${(10000000 / time).toFixed(0)} partite/sec
-                    </p>
-                `;
-                
-                box.style.display = 'block';
-                this.updateStats();
-                this.log(`✅ ${winRate}% win rate su 10k partite`);
-            }
-
-            playFullGame() {
-                // Simula una partita completa con regole corrette
-                const deck = [...this.deck].sort(() => Math.random() - 0.5);
-                
-                let playerCaptured = [];
-                let opponentCaptured = [];
-                let playerScopes = 0;
-                let opponentScopes = 0;
-                let table = deck.slice(0, 4);
-                let playerHand = deck.slice(4, 7);
-                let opponentHand = deck.slice(7, 10);
-                let deckRemaining = deck.slice(10);
-                
-                let turn = 0; // 0 = player (AI), 1 = opponent (random)
-                
-                while (playerHand.length > 0 || deckRemaining.length > 0) {
-                    // Gioca turno
-                    if (turn === 0 && playerHand.length > 0) {
-                        // AI gioca
-                        const moves = this.generateAllMoves(playerHand, table);
-                        if (moves.length > 0) {
-                            // Scegli mossa migliore (versione veloce)
-                            const best = moves.reduce((best, move) => {
-                                const score = this.evaluateMoveAdvanced(move);
-                                return score > best.score ? { move, score } : best;
-                            }, { move: moves[0], score: -Infinity }).move;
-                            
-                            playerCaptured.push(...best.captures);
-                            if (best.isScopa) playerScopes++;
-                            
-                            // Rimuovi carta dalla mano
-                            playerHand = playerHand.filter(c => c.id !== best.card.id);
-                            
-                            // Aggiorna tavolo
-                            if (best.captures.length === 0) {
-                                table.push(best.card);
-                            } else {
-                                table = table.filter(c => !best.captures.some(cc => cc.id === c.id));
-                            }
-                        }
-                    } else if (turn === 1 && opponentHand.length > 0) {
-                        // Avversario random
-                        const moves = this.generateAllMoves(opponentHand, table);
-                        if (moves.length > 0) {
-                            const random = moves[Math.floor(Math.random() * moves.length)];
-                            
-                            opponentCaptured.push(...random.captures);
-                            if (random.isScopa) opponentScopes++;
-                            
-                            opponentHand = opponentHand.filter(c => c.id !== random.card.id);
-                            
-                            if (random.captures.length === 0) {
-                                table.push(random.card);
-                            } else {
-                                table = table.filter(c => !random.captures.some(cc => cc.id === c.id));
-                            }
-                        }
-                    }
-                    
-                    turn = 1 - turn;
-                    
-                    // Ridai carte se entrambi hanno finito la mano
-                    if (playerHand.length === 0 && opponentHand.length === 0 && deckRemaining.length > 0) {
-                        playerHand = deckRemaining.slice(0, 3);
-                        opponentHand = deckRemaining.slice(3, 6);
-                        deckRemaining = deckRemaining.slice(6);
-                    }
-                }
-                
-                // Ultima mano prende carte rimanenti
-                if (turn === 0) {
-                    playerCaptured.push(...table);
-                } else {
-                    opponentCaptured.push(...table);
-                }
-                
-                // Calcola punteggio finale
-                const playerScore = this.calculateFinalScore(playerCaptured, playerScopes);
-                const opponentScore = this.calculateFinalScore(opponentCaptured, opponentScopes);
-                const playerPrimiera = this.calculatePrimiera(playerCaptured);
-                const opponentPrimiera = this.calculatePrimiera(opponentCaptured);
-                
-                return {
-                    playerScore: playerScore.total,
-                    opponentScore: opponentScore.total,
-                    playerScopes,
-                    opponentScopes,
-                    playerPrimiera,
-                    opponentPrimiera
-                };
-            }
-
-            calculateFinalScore(captured, scopes) {
-                let points = 0;
-                
-                // Scope
-                points += scopes;
-                
-                // Carte (21+)
-                if (captured.length > 20) points++;
-                
-                // Denari (6+)
-                const denari = captured.filter(c => c.suit === 0).length;
-                if (denari > 5) points++;
-                
-                // Settebello
-                if (captured.some(c => c.value === 7 && c.suit === 0)) points++;
-                
-                // Primiera (calcolata separatamente)
-                
-                return {
-                    total: points,
-                    cards: captured.length,
-                    denari: denari,
-                    scopes: scopes
-                };
-            }
-
-            calculatePrimiera(cards) {
-                const bySuit = [[], [], [], []];
-                cards.forEach(c => bySuit[c.suit].push(c));
-                
-                let total = 0;
-                for (let suit = 0; suit < 4; suit++) {
-                    if (bySuit[suit].length === 0) return 0; // Non ha primiera
-                    
-                    const best = bySuit[suit].reduce((max, card) => {
-                        const val = this.primieraValues[card.value];
-                        return val > max ? val : max;
-                    }, 0);
-                    
-                    total += best;
-                }
-                
-                return total;
-            }
-
-            showProbabilities() {
-                const unseen = this.getUnseenCards();
-                const modal = document.getElementById('probabilityModal');
-                const content = document.getElementById('probabilityContent');
-
-                const suitProbs = [0, 0, 0, 0];
-                const valueProbs = Array(10).fill(0);
-
-                unseen.forEach(card => {
-                    suitProbs[card.suit]++;
-                    valueProbs[card.value - 1]++;
-                });
-
-                const total = unseen.length;
-
-                let html = `
-                    <div class="analysis-title">Analisi Bayesiana - Carte Non Viste</div>
-                    <p style="margin-bottom: 20px; opacity: 0.8;">
-                        Carte non viste: <strong>${total}</strong> / 40
-                    </p>
-
-                    <div style="margin-bottom: 25px;">
-                        <div class="section-title" style="font-size: 16px; margin-bottom: 15px;">Distribuzione per Seme</div>
-                        <div class="stat-grid">
-                `;
-
-                this.suitNames.forEach((suit, idx) => {
-                    const prob = (suitProbs[idx] / total * 100).toFixed(1);
-                    html += `
-                        <div class="stat-card">
-                            <div class="stat-value">${prob}%</div>
-                            <div class="stat-label">${this.suits[idx]} ${suit}</div>
-                            <div style="font-size: 12px; opacity: 0.6;">${suitProbs[idx]} carte</div>
-                        </div>
-                    `;
-                });
-
-                html += `
-                        </div>
-                    </div>
-
-                    <div>
-                        <div class="section-title" style="font-size: 16px; margin-bottom: 15px;">Distribuzione per Valore</div>
-                        <div class="heatmap">
-                `;
-
-                valueProbs.forEach((count, idx) => {
-                    const prob = total > 0 ? (count / total * 100) : 0;
-                    const color = `rgba(76, 175, 80, ${Math.min(prob / 25, 1)})`;
-                    html += `
-                        <div class="heatmap-cell tooltip" 
-                             style="background: ${color}; color: ${prob > 12 ? '#000' : '#fff'};"
-                             data-tooltip="${this.valueNames[idx]}: ${prob.toFixed(1)}%">
-                            ${idx + 1}
-                        </div>
-                    `;
-                });
-
-                html += `
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 25px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 8px;">
-                        <strong>🎯 Intelligence Report:</strong>
-                        <p style="margin-top: 10px; font-size: 13px; opacity: 0.9; line-height: 1.6;">
-                            ${this.generateIntelligence(unseen, suitProbs, valueProbs)}
-                        </p>
-                    </div>
-                `;
-
-                content.innerHTML = html;
-                modal.classList.add('active');
-                this.log('📊 Analisi probabilistica completa');
-            }
-
-            generateIntelligence(unseen, suitProbs, valueProbs) {
-                const insights = [];
-
-                if (unseen.some(c => c.value === 7 && c.suit === 0)) {
-                    insights.push('🎯 SETTEBELLO ancora in gioco - priorità assoluta');
-                } else {
-                    insights.push('✓ Settebello già catturato');
-                }
-
-                const denariLeft = suitProbs[0];
-                insights.push(`💎 ${denariLeft} denari rimanenti (${(denariLeft/total*100).toFixed(0)}%)`);
-
-                const highCards = unseen.filter(c => c.value >= 6).length;
-                if (highCards > 8) {
-                    insights.push(`📈 ${highCards} carte alte (6-Re) ancora disponibili`);
-                }
-
-                const primieraCards = unseen.filter(c => [7, 6, 1].includes(c.value)).length;
-                insights.push(`📊 ${primieraCards} carte primiera premium (7, 6, A) rimanenti`);
-
-                return insights.join('. ') + '.';
-            }
-
-            aiVsAi() {
-                this.log('🤖 AI vs AI live...');
-                
-                const modal = document.getElementById('probabilityModal');
-                const content = document.getElementById('probabilityContent');
-                
-                content.innerHTML = `
-                    <div class="analysis-title">🤖 AI Pro vs Random - Partita Live</div>
-                    <div style="margin: 20px 0; text-align: center;">
-                        <div class="loading"></div> Partita in corso...
-                    </div>
-                    <div id="aiGameLog"></div>
-                `;
-                
-                modal.classList.add('active');
-                setTimeout(() => this.runAiMatch(), 500);
-            }
-
-            runAiMatch() {
-                const result = this.playFullGame();
-                const log = document.getElementById('aiGameLog');
-                
-                const winner = result.playerScore > result.opponentScore ? 'AI Pro' : 'Random';
-                const color = winner === 'AI Pro' ? 'var(--gold)' : '#f44';
-                
-                log.innerHTML = `
-                    <div class="stat-grid" style="margin: 20px 0;">
-                        <div class="stat-card">
-                            <div class="stat-value" style="color: var(--gold);">${result.playerScore}</div>
-                            <div class="stat-label">AI Pro</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value">${result.opponentScore}</div>
-                            <div class="stat-label">Random</div>
-                        </div>
-                    </div>
-                    <div class="analysis-box">
-                        <div class="analysis-title" style="color: ${color};">
-                            🏆 Vince: ${winner}!
-                        </div>
-                        <ul style="margin: 15px 0 0 20px; font-size: 13px; line-height: 1.8;">
-                            <li>Scope AI: ${result.playerScopes} | Random: ${result.opponentScopes}</li>
-                            <li>Primiera AI: ${result.playerPrimiera} | Random: ${result.opponentPrimiera}</li>
-                            <li>Margine: ${Math.abs(result.playerScore - result.opponentScore)} punt${Math.abs(result.playerScore - result.opponentScore) === 1 ? 'o' : 'i'}</li>
-                        </ul>
-                    </div>
-                `;
-                
-                this.log(`🏁 ${winner} vince ${result.playerScore}-${result.opponentScore}`);
-            }
-
-            updateStats() {
-                document.getElementById('statWinRate').textContent = 
-                    this.stats.gamesPlayed > 0 ? 
-                    (this.stats.wins / this.stats.gamesPlayed * 100).toFixed(1) + '%' : '0%';
-                
-                document.getElementById('statAvgScore').textContent = 
-                    this.stats.gamesPlayed > 0 ? 
-                    (this.stats.totalScore / this.stats.gamesPlayed).toFixed(2) : '0';
-                
-                document.getElementById('statScopes').textContent = this.stats.scopes;
-                
-                document.getElementById('statPrimiera').textContent = 
-                    this.stats.gamesPlayed > 0 ? 
-                    (this.stats.primieraWins / this.stats.gamesPlayed * 100).toFixed(1) + '%' : '0%';
-
-                const total = [...this.playerHand, ...this.tableCards, ...this.opponentCards].length;
-                const remaining = 40 - total;
-                document.getElementById('cardsLeft').textContent = remaining;
-                document.getElementById('deckProgress').style.width = (remaining / 40 * 100) + '%';
-            }
-
-            log(message) {
-                this.gameLog.unshift(message);
-                const logEl = document.getElementById('gameLog');
-                const entry = document.createElement('div');
-                entry.className = 'log-entry';
-                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-                logEl.insertBefore(entry, logEl.firstChild);
-                
-                while (logEl.children.length > 30) {
-                    logEl.removeChild(logEl.lastChild);
-                }
-            }
-
-            reset() {
-                this.playerHand = [];
-                this.tableCards = [];
-                this.opponentCards = [];
-                this.playerCaptured = [];
-                this.opponentCaptured = [];
-                this.scopes = { player: 0, opponent: 0 };
-                this.evaluationCache.clear();
-                this.transpositionTable.clear();
-                
-                this.renderCards();
-                this.updateCardSelector();
-                this.updateStats();
-                
-                document.getElementById('analysisBox').style.display = 'none';
-                document.getElementById('decisionTree').innerHTML = 
-                    '<div style="opacity: 0.5;">Calcola per vedere l\'albero...</div>';
-                
-                this.log('🔄 Reset completato');
-            }
+        // Invia risposta di Benvenuto con lo stato della stanza
+        conn.send({
+          t: 'welcome',
+          muted: state.muted,
+          rate: el.rateInput.value,
+          people: getPeopleList()
+        });
+
+        renderPeople();
+        broadcast({ t: 'people', people: getPeopleList() }, peerId);
+      }
+
+      if (data.t === 'msg') {
+        if (state.muted) {
+          conn.send({ t: 'rejected', reason: 'La stanza è in sola lettura dall\'host.' });
+          return;
         }
+        appendMessage(data.name, data.text, false);
+        enqueueAudio(data.text);
+        broadcast(data, peerId);
+      }
 
-        const game = new ScopaGame();
-    </script>
+      if (data.t === 'rate') {
+        el.rateInput.value = data.value;
+        el.rateLabel.textContent = `${parseFloat(data.value).toFixed(2)}×`;
+        broadcast(data, peerId);
+      }
+    });
+
+    conn.on('close', () => {
+      state.peers.delete(peerId);
+      renderPeople();
+      broadcast({ t: 'people', people: getPeopleList() });
+    });
+  });
+
+  state.peer.on('error', err => updateStatus('Errore connessione Host', false));
+}
+
+function initGuest(code) {
+  state.isHost = false;
+  state.roomId = code.toUpperCase();
+  state.myName = el.userName.value.trim() || 'Ospite';
+
+  state.peer = new Peer();
+
+  state.peer.on('open', () => {
+    state.hostConn = state.peer.connect(`lv3-${state.roomId.toLowerCase()}`, { reliable: true });
+
+    state.hostConn.on('open', () => {
+      state.hostConn.send({ t: 'join', name: state.myName });
+      enterRoomUI();
+    });
+
+    state.hostConn.on('data', data => {
+      if (data.t === 'welcome') {
+        state.muted = data.muted;
+        renderPeopleList(data.people);
+        updateStatus('Connesso', true);
+      }
+      if (data.t === 'people') renderPeopleList(data.people);
+      if (data.t === 'msg') {
+        appendMessage(data.name, data.text, false);
+        enqueueAudio(data.text);
+      }
+      if (data.t === 'rate') {
+        el.rateInput.value = data.value;
+        el.rateLabel.textContent = `${parseFloat(data.value).toFixed(2)}×`;
+      }
+      if (data.t === 'rejected') alert(data.reason);
+      if (data.t === 'kicked') {
+        alert('Sei stato rimosso dall\'host.');
+        window.location.reload();
+      }
+    });
+
+    state.hostConn.on('close', () => {
+      updateStatus('Disconnesso dall\'host', false);
+    });
+  });
+
+  state.peer.on('error', () => updateStatus('Stanza non trovata', false));
+}
+
+// --- UI ENGINE & RENDERERS ---
+function updateStatus(text, isOnline) {
+  el.statusText.textContent = text;
+  if (isOnline) el.statusDot.classList.add('online');
+  else el.statusDot.classList.remove('online');
+}
+
+function enterRoomUI() {
+  el.homeView.classList.add('hidden');
+  el.roomView.classList.remove('hidden');
+  el.displayRoomCode.textContent = state.roomId;
+  updateStatus(state.isHost ? 'Online (Host)' : 'Connesso', true);
+
+  const url = new URL(window.location.href);
+  url.searchParams.set('room', state.roomId);
+  window.history.replaceState({}, '', url);
+
+  renderPeople();
+}
+
+function renderPeople() {
+  renderPeopleList(getPeopleList());
+  renderModerationList();
+}
+
+function renderPeopleList(list) {
+  el.peopleList.innerHTML = list.map(p => `
+    <span class="person-chip ${p.isHost ? 'host' : ''}">
+      ${p.isHost ? '👑' : '🟢'} ${escapeHTML(p.name)}
+    </span>
+  `).join('');
+}
+
+function renderModerationList() {
+  if (!state.isHost) return;
+  const list = getPeopleList().filter(p => !p.isHost);
+  
+  if (list.length === 0) {
+    el.moderationList.innerHTML = '<div style="font-size:12px; color:var(--text-muted)">Nessun altro partecipante presente.</div>';
+    return;
+  }
+
+  el.moderationList.innerHTML = '';
+  list.forEach(p => {
+    const item = document.createElement('div');
+    item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.2); padding:8px 12px; border-radius:10px;';
+    item.innerHTML = `<span>${escapeHTML(p.name)}</span>`;
+    
+    const kickBtn = document.createElement('button');
+    kickBtn.className = 'danger';
+    kickBtn.style.padding = '6px 10px';
+    kickBtn.textContent = 'Rimuovi';
+    kickBtn.onclick = () => removeParticipant(p.id);
+
+    item.appendChild(kickBtn);
+    el.moderationList.appendChild(item);
+  });
+}
+
+function removeParticipant(peerId) {
+  const target = state.peers.get(peerId);
+  if (target && target.conn) {
+    target.conn.send({ t: 'kicked' });
+    target.conn.close();
+    state.peers.delete(peerId);
+    renderPeople();
+  }
+}
+
+function appendMessage(name, text, isMe) {
+  const empty = $('emptyState');
+  if (empty) empty.remove();
+
+  const msgEl = document.createElement('div');
+  msgEl.className = `msg ${isMe ? 'me' : ''}`;
+  msgEl.innerHTML = `
+    <div class="msg-meta">${escapeHTML(name)}</div>
+    <div class="msg-body">${escapeHTML(text)}</div>
+  `;
+
+  el.messagesBox.appendChild(msgEl);
+  el.messagesBox.scrollTop = el.messagesBox.scrollHeight;
+}
+
+function sendMessage() {
+  const text = el.messageInput.value.trim();
+  if (!text) return;
+
+  if (state.muted && !state.isHost) {
+    alert('La stanza è attualmente bloccata in sola lettura dall\'host.');
+    return;
+  }
+
+  const payload = { t: 'msg', name: state.myName, text };
+
+  appendMessage(state.myName, text, true);
+  enqueueAudio(text);
+  el.messageInput.value = '';
+
+  if (state.isHost) {
+    broadcast(payload);
+  } else if (state.hostConn && state.hostConn.open) {
+    state.hostConn.send(payload);
+  }
+}
+
+function escapeHTML(str) {
+  return str.replace(/[&<>'"]/g, 
+    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+  );
+}
+
+// --- EVENT LISTENERS ---
+$('btnCreate').onclick = () => initHost();
+
+$('btnJoin').onclick = () => {
+  const code = el.roomCodeInput.value.trim() || new URLSearchParams(window.location.search).get('room');
+  if (!code) { el.roomCodeInput.focus(); return; }
+  initGuest(code);
+};
+
+$('btnSend').onclick = sendMessage;
+el.messageInput.onkeydown = e => { if (e.key === 'Enter') sendMessage(); };
+
+el.rateInput.oninput = e => {
+  const val = e.target.value;
+  el.rateLabel.textContent = `${parseFloat(val).toFixed(2)}×`;
+  const payload = { t: 'rate', value: val };
+  if (state.isHost) broadcast(payload);
+  else if (state.hostConn?.open) state.hostConn.send(payload);
+};
+
+$('btnShare').onclick = () => {
+  const shareUrl = window.location.href;
+  if (navigator.share) {
+    navigator.share({ title: 'Live Voice', text: 'Entra nella mia stanza vocale!', url: shareUrl }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(shareUrl).then(() => alert('Link di invito copiato negli appunti!'));
+  }
+};
+
+$('btnSettings').onclick = () => {
+  if (!state.isHost) {
+    alert('Solo l\'host della stanza può accedere al pannello di moderazione.');
+    return;
+  }
+  el.modalOverlay.classList.add('active');
+};
+
+$('btnCloseModal').onclick = () => el.modalOverlay.classList.remove('active');
+
+$('btnClearQueue').onclick = () => {
+  state.queue = [];
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  state.speaking = false;
+  updateQueueUI();
+  setSpeakingUI(false);
+};
+
+el.btnToggleMute.onclick = () => {
+  state.muted = !state.muted;
+  el.btnToggleMute.textContent = state.muted ? '🔓 Sblocca Messaggi Client' : '🔒 Blocca Messaggi Client';
+  broadcast({ t: 'muted', value: state.muted });
+};
+
+// Auto-fill codice se presente nell'URL
+window.addEventListener('DOMContentLoaded', () => {
+  const roomParam = new URLSearchParams(window.location.search).get('room');
+  if (roomParam) el.roomCodeInput.value = roomParam.toUpperCase();
+});
+</script>
 </body>
 </html>
